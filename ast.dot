@@ -1,0 +1,31 @@
+digraph AST {
+  rankdir=TB;
+  node [fontname="monospace", fontsize=10];
+  edge [fontname="monospace"];
+  n0 [label="Decl", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n1 [label="Int", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n0 -> n1 [label="spec", fontsize=9, color=gray40];
+  n2 [label="InitDeclarator", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n3 [label="Ident 'x'", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n2 -> n3;
+  n0 -> n2 [label="declarator", fontsize=9, color=gray40];
+  n4 [label="InitDeclarator", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n5 [label="Ident 'z'", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n4 -> n5;
+  n6 [label="Int 1", shape=ellipse, style=filled, fillcolor="#fff9c4"];
+  n4 -> n6 [label="init", fontsize=9, color=gray40];
+  n0 -> n4 [label="declarator", fontsize=9, color=gray40];
+  n7 [label="InitDeclarator", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n8 [label="Ident 'c'", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n7 -> n8;
+  n0 -> n7 [label="declarator", fontsize=9, color=gray40];
+  n9 [label="Decl", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n10 [label="Int", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n9 -> n10 [label="spec", fontsize=9, color=gray40];
+  n11 [label="InitDeclarator", shape=box, style=filled, fillcolor="#c8e6c9"];
+  n12 [label="Ident 'y'", shape=ellipse, style=filled, fillcolor="#bbdefb"];
+  n11 -> n12;
+  n13 [label="Int 2", shape=ellipse, style=filled, fillcolor="#fff9c4"];
+  n11 -> n13 [label="init", fontsize=9, color=gray40];
+  n9 -> n11 [label="declarator", fontsize=9, color=gray40];
+}
