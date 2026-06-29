@@ -12,10 +12,11 @@
 //     expr       := int_literal
 // =============================================================================
 
-use crate::ast::*;
 use env::Env;
+use crate::ast::ast::*;
+use crate::ast::type_spec::*;
 use crate::parser::env;
-use crate::token::{SpannedToken, Token};
+use crate::lexer::token::{SpannedToken, Token};
 
 pub struct Parser {
     tokens: Vec<SpannedToken>,
@@ -85,7 +86,7 @@ impl Parser {
         // One or more comma-separated declarators: `int a, b = 1, c;`
         let mut declarators : Vec<InitDeclarator> = vec![self.parse_init_declarator()?];
         while matches!(self.peek(), Some(Token::Comma)) {
-            self.consumes_token();
+            self.advance();
             declarators.push(self.parse_init_declarator()?);
         }
 
@@ -126,27 +127,42 @@ impl Parser {
     /// initializer's expr := int_literal
     fn parse_expr(&mut self) -> Result<Expr, String> {
         match self.advance() {
-            Some(SpannedToken { token: Token::IntLit(n), .. }) => {
+            Some(SpannedToken { token: Token::Int(n), .. }) => {
                 // Lower the raw i64 into the structured IntLit of the full AST.
-                Ok(Expr::IntLit(IntLit {
-                    value: n as u64,
-                    base: IntBase::Decimal,
-                    suffix: IntSuffix { unsigned: false, long: LongKind::None },
-                }))
+                Ok(Expr::IntLit(n))
+            }
+            Some(SpannedToken { token: Token::Float(f), .. }) => {
+                Ok(Expr::FloatLit(f))
+            }
+            Some(SpannedToken { token: Token::CharLit(c), .. }) => {
+                Ok(Expr::CharLit(c))
+            }
+            Some(SpannedToken { token: Token::StringLit(s), .. }) => {
+                Ok(Expr::StringLit(s))
             }
             other => Err(format!("expected expression, found {:?}", other)),
         }
     }
 
     fn parse_type(&mut self) -> Result<TypeSpec, String> {
-        match self.peek() {
-            Some(Token::KwInt) => {
-                self.advance();
-                Ok(TypeSpec::Int)
+        let mut kws = Vec::new();
+        loop {
+            match self.peek() {
+                Some(Token::KwVoid) => { kws.push(TypeKeyword::Void); self.advance(); },
+                Some(Token::KwBool) => { kws.push(TypeKeyword::Bool); self.advance(); },
+                Some(Token::KwChar) => { kws.push(TypeKeyword::Char); self.advance(); },
+                Some(Token::KwShort) => { kws.push(TypeKeyword::Short); self.advance(); },
+                Some(Token::KwInt) => { kws.push(TypeKeyword::Int); self.advance(); },
+                Some(Token::KwLong) => { kws.push(TypeKeyword::Long); self.advance(); },
+                Some(Token::KwFloat) => { kws.push(TypeKeyword::Float); self.advance(); },
+                Some(Token::KwDouble) => { kws.push(TypeKeyword::Double); self.advance(); },
+                Some(Token::KwSigned) => { kws.push(TypeKeyword::Signed); self.advance(); },
+                Some(Token::KwUnsigned) => { kws.push(TypeKeyword::Unsigned); self.advance(); },
+                _ => break,
             }
-            // TODO: Named(String) lookup via self.env.is_typedef(name)
-            other => Err(format!("expected type specifier, found {:?}", other)),
         }
+        // (struct/union/enum/typedef-name handled separately before this point)
+        resolve_type_spec(&kws)
     }
 
     fn parse_storage_class(&mut self) -> Option<StorageClass> {
@@ -183,7 +199,7 @@ impl Parser {
 trait IntoAstSpan {
     fn into_ast(self) -> Span;
 }
-impl IntoAstSpan for crate::token::Span {
+impl IntoAstSpan for crate::lexer::token::Span {
     fn into_ast(self) -> Span {
         Span { start: self.start, end: self.end }
     }

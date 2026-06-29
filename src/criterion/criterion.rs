@@ -3,7 +3,7 @@
 // Sits on top of the C AST — recognised after parsing, not during.
 // -----------------------------------------------------------------------------
 
-use crate::ast::{Expr, Item, Span, Spanned, Stmt};
+use crate::ast::ast::{Expr, Item, Span, Spanned, Stmt};
 
 /// A full parsed .c file containing Criterion tests
 

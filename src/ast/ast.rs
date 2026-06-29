@@ -8,6 +8,8 @@
 // SPAN — source location, attach to every node for error reporting
 // -----------------------------------------------------------------------------
 
+use crate::literals::*;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Span {
     pub start: usize, // byte offset in source
@@ -41,65 +43,6 @@ impl<T> Spanned<T> {
 }
 
 // -----------------------------------------------------------------------------
-// LITERALS
-// -----------------------------------------------------------------------------
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum IntBase {
-    Decimal,
-    Hexadecimal,
-    Octal,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct IntLit {
-    pub value: u64,
-    pub base: IntBase,
-    pub suffix: IntSuffix,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct IntSuffix {
-    pub unsigned: bool,  // u / U
-    pub long: LongKind,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum LongKind {
-    None,
-    Long,       // l / L
-    LongLong,   // ll / LL
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct FloatLit {
-    pub value: f64,
-    pub suffix: FloatSuffix,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum FloatSuffix {
-    Double,  // no suffix
-    Float,   // f / F
-    LongDouble, // l / L
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct StringLit {
-    pub value: String,         // decoded content
-    pub prefix: StringPrefix,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum StringPrefix {
-    None,    // "..."
-    Wide,    // L"..."
-    Utf8,    // u8"..."
-    Utf16,   // u"..."
-    Utf32,   // U"..."
-}
-
-// -----------------------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------------------
 
@@ -118,27 +61,26 @@ pub enum TypeQualifier {
     Restrict,   // pointer contexts only
 }
 
+// -----------------------------------------------------------------------------
+// TYPE SPECIFIER
+//
+// Primitive arithmetic types are NOT enumerated as fixed combinations. C builds
+// them from three independent axes (sign, size, base) given in any order and in
+// any number of words: `unsigned long`, `long unsigned int`, `long long`, etc.
+// We accumulate the axes during parsing and store them here. Non-arithmetic
+// specifiers (void, _Bool, named types, tags) stay as distinct variants.
+// -----------------------------------------------------------------------------
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeSpec {
-    // Primitive
+    // Arithmetic types built from independent specifier axes
+    Arithmetic(ArithType),
+
+    // Non-arithmetic primitives
     Void,
     Bool,               // _Bool / stdbool.h bool
-    Char,
-    SignedChar,
-    UnsignedChar,
-    Short,
-    UnsignedShort,
-    Int,
-    UnsignedInt,
-    Long,
-    UnsignedLong,
-    LongLong,
-    UnsignedLongLong,
-    Float,
-    Double,
-    LongDouble,
 
-    // Named type (typedef or tag)
+    // Named type (typedef or tag alias)
     Named(String),      // e.g. size_t, uint8_t, MyStruct
 
     // Struct / union
@@ -147,6 +89,110 @@ pub enum TypeSpec {
 
     // Enum
     Enum(EnumSpec),
+}
+
+/// An arithmetic type decomposed into its three independent axes.
+/// `int`, `unsigned`, `long long int`, `unsigned char`, `long double` all fit.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArithType {
+    pub sign: Option<Sign>,   // None = unspecified (int→signed; char→impl-defined)
+    pub size: SizeSpec,       // short / none / long / long long
+    pub base: BaseType,       // int / char / float / double
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Sign {
+    Signed,    // signed
+    Unsigned,  // unsigned
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SizeSpec {
+    Short,     // short
+    None,      // (no size word)
+    Long,      // long
+    LongLong,  // long long
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BaseType {
+    Int,       // also the default base when only sign/size are written
+    Char,
+    Float,
+    Double,    // `long double` = {size: Long, base: Double}
+}
+
+// Ergonomic constructors so common types are not verbose to build.
+impl TypeSpec {
+    pub fn int() -> Self {
+        TypeSpec::Arithmetic(ArithType {
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Int,
+        })
+    }
+
+    pub fn uint() -> Self {
+        TypeSpec::Arithmetic(ArithType {
+            sign: Some(Sign::Unsigned),
+            size: SizeSpec::None,
+            base: BaseType::Int,
+        })
+    }
+
+    pub fn char_() -> Self {
+        TypeSpec::Arithmetic(ArithType {
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Char,
+        })
+    }
+
+    pub fn double() -> Self {
+        TypeSpec::Arithmetic(ArithType {
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Double,
+        })
+    }
+
+    pub fn float_() -> Self {
+        TypeSpec::Arithmetic(ArithType {
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Float,
+        })
+    }
+}
+
+impl ArithType {
+    /// Render the canonical C spelling, e.g. "unsigned long int".
+    /// Useful for the emitter and for diagnostics.
+    pub fn to_c_string(&self) -> String {
+        let mut parts: Vec<&str> = Vec::new();
+        if let Some(sign) = &self.sign {
+            parts.push(match sign {
+                Sign::Signed => "signed",
+                Sign::Unsigned => "unsigned",
+            });
+        }
+        match self.size {
+            SizeSpec::Short => parts.push("short"),
+            SizeSpec::None => {}
+            SizeSpec::Long => parts.push("long"),
+            SizeSpec::LongLong => {
+                parts.push("long");
+                parts.push("long");
+            }
+        }
+        parts.push(match self.base {
+            BaseType::Int => "int",
+            BaseType::Char => "char",
+            BaseType::Float => "float",
+            BaseType::Double => "double",
+        });
+        parts.join(" ")
+    }
 }
 
 // Pointer / array / function layering on top of a base type
@@ -539,4 +585,61 @@ impl FunctionDef {
 pub enum Item {
     FunctionDef(FunctionDef),
     Decl(Spanned<Decl>),                   // global variable / typedef / extern
+}
+
+// -----------------------------------------------------------------------------
+// CRITERION-SPECIFIC LAYER
+// Sits on top of the C AST — recognised after parsing, not during.
+// -----------------------------------------------------------------------------
+
+/// A full parsed .c file containing Criterion tests
+#[derive(Debug)]
+pub struct CriterionFile {
+    pub items: Vec<Item>,                  // non-test C items (helpers, etc.)
+    pub suites: Vec<CriterionSuite>,
+}
+
+#[derive(Debug)]
+pub struct CriterionSuite {
+    pub name: String,
+    pub timeout: Option<f64>,
+    pub tests: Vec<CriterionTest>,
+    pub span: Span,
+}
+
+#[derive(Debug)]
+pub struct CriterionTest {
+    pub suite: String,
+    pub name: String,
+    pub disabled: bool,
+    pub timeout: Option<f64>,
+    pub body: Vec<CriterionBodyItem>,
+    pub span: Span,
+}
+
+/// Each item in a test body is either a Criterion assertion or plain C
+#[derive(Debug)]
+pub enum CriterionBodyItem {
+    Assertion(CriterionAssertion),
+    Other(Spanned<Stmt>),                  // kept for context / manual review
+}
+
+#[derive(Debug)]
+pub struct CriterionAssertion {
+    pub kind: AssertKind,
+    pub fatal: bool,                       // cr_assert = fatal, cr_expect = not
+    pub args: Vec<Spanned<Expr>>,          // fully parsed, not raw strings
+    pub message: Option<Spanned<Expr>>,    // last string arg if present
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AssertKind {
+    Assert,
+    Eq, Ne,
+    Lt, Le, Gt, Ge,
+    Null, NotNull,
+    FloatEq, FloatNe,
+    StrEq, StrNe, StrLt, StrLe, StrGt, StrGe,
+    MemEq, MemNe,
 }
