@@ -1,10 +1,6 @@
 // =============================================================================
 // parser.rs — handwritten recursive descent, producing the full-AST shapes.
 //
-// Handwritten (not chumsky) because C is not context-free: resolving whether
-// an identifier names a type requires a mutable typedef environment threaded
-// through the parser. That environment lives here as `Env`, ready to grow.
-//
 // Grammar slice:
 //     decl       := storage? qualifier* type init_decl ("," init_decl)* ";"
 //     init_decl  := ident ("=" initializer)?
@@ -128,7 +124,6 @@ impl Parser {
     fn parse_expr(&mut self) -> Result<Expr, String> {
         match self.advance() {
             Some(SpannedToken { token: Token::Int(n), .. }) => {
-                // Lower the raw i64 into the structured IntLit of the full AST.
                 Ok(Expr::IntLit(n))
             }
             Some(SpannedToken { token: Token::Float(f), .. }) => {

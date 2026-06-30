@@ -52,7 +52,7 @@ fn output_expr(expr: &Expr) -> String {
         Expr::IntLit(lit) => lit.value.to_string(),
         Expr::FloatLit(lit) => lit.value.to_string(),
         Expr::CharLit(lit) => format!("'{}'", lit),
-        Expr::StringLit(lit) => lit.value.to_string(),
+        Expr::StringLit(lit) => lit.value.escape_default().to_string(),
         _ => "/* expr */".to_string(), // Placeholder for other expressions
     }
 }

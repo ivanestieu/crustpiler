@@ -7,7 +7,6 @@ pub enum IntBase {
     Decimal,
     Hexadecimal,
     Octal,
-    Binary,
 }
 
 #[derive(Debug, Clone, PartialEq)]
