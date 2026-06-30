@@ -8,7 +8,7 @@ mod tests {
     use criterion_to_rust::output::output;
 
     fn parse(src: &str) -> Result<Decl, String> {
-        let tokens = token::lex(src)?;
+        let tokens = token::lex(src).map_err(|e| e.to_string())?;
         parser::Parser::new(tokens).parse_decl()
     }
 

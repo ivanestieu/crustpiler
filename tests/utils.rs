@@ -2,13 +2,13 @@ use logos::Logos;
 use criterion_to_rust::lexer::token::Token;
 use criterion_to_rust::literals::{FloatSuffix, LongKind};
 
-fn build_int_suffix(base: &str, unsigned: bool, long_kind: LongKind) -> Vec<String> {
+pub fn build_int_suffix(base: &str, unsigned: bool, long_kind: LongKind) -> Vec<String> {
     let mut literals = Vec::new();
     for u in if unsigned { vec!["u", "U"] } else { vec![""] } {
         for l in match long_kind {
             LongKind::None => vec![""],
             LongKind::Long => vec!["l", "L"],
-            LongKind::LongLong => vec!["ll", "LL", "lL", "Ll"],
+            LongKind::LongLong => vec!["ll", "LL"],
         } {
             let suffix = format!("{}{}", u, l);
             let reversed = format!("{}{}", l, u);
@@ -19,7 +19,7 @@ fn build_int_suffix(base: &str, unsigned: bool, long_kind: LongKind) -> Vec<Stri
     literals
 }
 
-fn build_float_suffix(base: &str, suffix: FloatSuffix) -> Vec<String> {
+pub fn build_float_suffix(base: &str, suffix: FloatSuffix) -> Vec<String> {
     let mut literals = Vec::new();
     match suffix {
         FloatSuffix::Double => {
@@ -37,23 +37,18 @@ fn build_float_suffix(base: &str, suffix: FloatSuffix) -> Vec<String> {
     literals
 }
 
-fn lex_token(src: &str) -> Token {
+pub fn lex_token(src: &str) -> Token {
     let mut lex = Token::lexer(src).spanned();
     let (result, range) = lex.next().expect("No token found");
     match result {
         Ok(token) => token,
-        Err(()) => {
-            panic!(
-                "lex error: unrecognized input at bytes {}..{} ({:?})",
-                range.start,
-                range.end,
-                &src[range.clone()]
-            );
+        Err(e) => {
+            panic!("{:?}", e);
         }
     }
 }
 
-fn lex_tokens(vec: &Vec<String>) -> Vec<Token> {
+pub fn lex_tokens(vec: &Vec<String>) -> Vec<Token> {
     vec.into_iter().map(|s| lex_token(&s)).collect()
 }
 
