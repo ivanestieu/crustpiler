@@ -5,9 +5,11 @@
 // =============================================================================
 
 use crate::ast::ast::*;
+use crate::ast::declarations::{Decl, Declaration, InitDeclarator, Initializer};
+use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeSpec};
 
 pub fn output_decl(decl: &Decl) -> String {
-    let ty = output_type(&decl.spec);
+    let ty = output_type(&decl.specifiers.type_spec);
 
     // One Rust `let` line per declarator (handles `int a, b;` once commas exist).
     decl.declarators
@@ -28,10 +30,10 @@ fn output_init_declarator(d: &InitDeclarator, ty: &str) -> String {
 
 fn output_type(spec: &TypeSpec) -> &'static str {
     match spec {
-        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::Short }) => "u16",
-        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::None }) => "u32",
-        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::Long }) => "u64",
-        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::LongLong }) => "u128",
+        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::Short, .. }) => "u16",
+        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::None, .. }) => "u32",
+        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::Long, .. }) => "u64",
+        TypeSpec::Arithmetic(ArithType { base: BaseType::Int, sign : Some(Sign::Unsigned), size: SizeSpec::LongLong, .. }) => "u128",
         TypeSpec::Arithmetic(ArithType { base: BaseType::Int, size: SizeSpec::Short, .. }) => "i16",
         TypeSpec::Arithmetic(ArithType { base: BaseType::Int, size: SizeSpec::None, .. }) => "i32",
         TypeSpec::Arithmetic(ArithType { base: BaseType::Int, size: SizeSpec::Long, .. }) => "i64",
@@ -58,10 +60,15 @@ fn output_expr(expr: &Expr) -> String {
 }
 
 pub fn output_translation_unit(p0: &Vec<Item>) -> String {
-    p0.iter().filter(|item| matches!(item, Item::Decl(_))).map(|item| {
+    p0.iter().filter_map(|item| {
         match item {
-            Item::Decl(decl) => output_decl(&decl.node),
-            _ => String::new(),
+            Item::Declaration(decl) => {
+                match decl {
+                    Declaration::Normal(d) => Some(output_decl(&d.node)),
+                    Declaration::StaticAssert(_) => None,
+                }
+            }
+            _ => None,
         }
     }).collect::<Vec<_>>().join("\n")
 }

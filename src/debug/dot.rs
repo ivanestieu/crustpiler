@@ -1,4 +1,3 @@
-// =============================================================================
 // dot.rs — Graphviz .dot dumper for the full C AST in ast.rs
 //
 // Usage:
@@ -16,7 +15,15 @@
 // (numbers, identifiers) so the rendered tree is self-explanatory.
 // =============================================================================
 
-use crate::ast::ast::*;
+use crate::ast::ast::{Expr, Item};
+use crate::ast::declarations::{Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer};
+use crate::ast::declarator::Declarator;
+use crate::ast::function_def::FunctionDef;
+use crate::ast::parameters::ParamDecl;
+use crate::ast::statements::{BlockItem, ForInit, Stmt};
+use crate::ast::decl_specifiers::TypeExpr;
+use crate::ast::types::TypeSpec;
+use crate::criterion::criterion::{CriterionAssertion, CriterionBodyItem, CriterionFile, CriterionSuite, CriterionTest};
 
 pub struct DotDumper {
     next_id: usize,
@@ -148,8 +155,8 @@ impl DotDumper {
 
     pub fn item(&mut self, it: &Item) -> usize {
         match it {
-            Item::FunctionDef(f) => self.function_def(f),
-            Item::Decl(d) => self.decl(&d.node),
+            Item::FunctionDef(f) => self.function_def(&f.node),
+            Item::Declaration(d) => self.declaration(d),
         }
     }
 
@@ -158,11 +165,16 @@ impl DotDumper {
         let id = self.id();
         self.node(id, &format!("FunctionDef '{}'", name), NodeKind::Decl);
 
-        let r = self.type_spec(&f.ret);
+        let r = self.type_expr(&f.ret);
         self.edge(id, r, "ret");
 
         let d = self.declarator(&f.declarator);
         self.edge(id, d, "declarator");
+
+        for p in &f.old_style_params {
+            let c = self.decl(p);
+            self.edge(id, c, "old_style_param");
+        }
 
         for item in &f.body {
             let c = self.block_item(item);
@@ -173,19 +185,26 @@ impl DotDumper {
 
     // ── Declarations ──────────────────────────────────────────────────────────
 
-    pub fn decl(&mut self, d: &Decl) -> usize {
-        let mut label = String::from("Decl");
-        if let Some(sc) = &d.storage {
-            label.push_str(&format!("\\nstorage={:?}", sc));
+    pub fn declaration(&mut self, d: &Declaration) -> usize {
+        match d {
+            Declaration::Normal(decl_spanned) => self.decl(&decl_spanned.node),
+            Declaration::StaticAssert(sa_spanned) => {
+                let id = self.id();
+                self.node(id, "StaticAssert", NodeKind::Decl);
+                let c = self.expr(&sa_spanned.node.cond);
+                self.edge(id, c, "cond");
+                // Note: message is a StringLit, displayed as label
+                id
+            }
         }
-        for q in &d.qualifiers {
-            label.push_str(&format!("\\n{:?}", q));
-        }
-        let id = self.id();
-        self.node(id, &label, NodeKind::Decl);
+    }
 
-        let s = self.type_spec(&d.spec);
-        self.edge(id, s, "spec");
+    pub fn decl(&mut self, d: &Decl) -> usize {
+        let id = self.id();
+        self.node(id, "Decl", NodeKind::Decl);
+
+        let s = self.type_expr(&d.specifiers);
+        self.edge(id, s, "specifiers");
 
         for idecl in &d.declarators {
             let c = self.init_declarator(idecl);
@@ -244,7 +263,7 @@ impl DotDumper {
 
     fn declarator(&mut self, d: &Declarator) -> usize {
         let (label, child): (String, Option<&Declarator>) = match d {
-            Declarator::Ident(name, _) => (format!("Ident '{}'", name), None),
+            Declarator::Ident(name) => (format!("Ident '{}'", name), None),
             Declarator::Abstract => ("Abstract".to_string(), None),
             Declarator::Pointer { inner, .. } => ("Pointer *".to_string(), Some(inner)),
             Declarator::Array { inner, .. } => ("Array []".to_string(), Some(inner)),
@@ -257,9 +276,20 @@ impl DotDumper {
             self.edge(id, c, "inner");
         }
         // Array size / function params, if present
-        if let Declarator::Array { size: Some(sz), .. } = d {
-            let c = self.expr(sz);
-            self.edge(id, c, "size");
+        if let Declarator::Array { size, .. } = d {
+            use crate::ast::declarator::ArraySize;
+            match size {
+                ArraySize::Fixed(sz) => {
+                    let c = self.expr(sz);
+                    self.edge(id, c, "size");
+                }
+                ArraySize::Vla => {
+                    let vid = self.id();
+                    self.node(vid, "[*]", NodeKind::Type);
+                    self.edge(id, vid, "");
+                }
+                ArraySize::None => {}
+            }
         }
         if let Declarator::Function { params, variadic, .. } = d {
             for p in params {
@@ -278,8 +308,8 @@ impl DotDumper {
     fn param(&mut self, p: &ParamDecl) -> usize {
         let id = self.id();
         self.node(id, "Param", NodeKind::Type);
-        let s = self.type_spec(&p.spec);
-        self.edge(id, s, "spec");
+        let s = self.type_expr(&p.specifiers);
+        self.edge(id, s, "specifiers");
         let d = self.declarator(&p.declarator);
         self.edge(id, d, "");
         id
@@ -302,6 +332,13 @@ impl DotDumper {
             TypeSpec::Enum(e) => {
                 format!("enum {}", e.name.clone().unwrap_or_else(|| "<anon>".into()))
             }
+            TypeSpec::Atomic(te) => {
+                let id = self.id();
+                self.node(id, "_Atomic", NodeKind::Type);
+                let inner = self.type_expr(te);
+                self.edge(id, inner, "");
+                return id;
+            }
         };
         let id = self.id();
         self.node(id, &label, NodeKind::Type);
@@ -310,19 +347,38 @@ impl DotDumper {
 
     fn type_expr(&mut self, t: &TypeExpr) -> usize {
         let id = self.id();
-        self.node(id, "TypeExpr", NodeKind::Type);
-        let s = self.type_spec(&t.spec);
-        self.edge(id, s, "spec");
-        for d in &t.derived {
-            let label = match d {
-                DerivedType::Pointer(_) => "* pointer",
-                DerivedType::Array(_) => "[] array",
-                DerivedType::Function(_, _) => "() function",
-            };
-            let did = self.id();
-            self.node(did, label, NodeKind::Type);
-            self.edge(id, did, "derived");
+        let mut label = String::from("TypeExpr");
+
+        if let Some(sc) = &t.storage {
+            label.push_str(&format!("\\nstorage={:?}", sc));
         }
+        if t.thread_local {
+            label.push_str("\\n_Thread_local");
+        }
+
+        self.node(id, &label, NodeKind::Type);
+
+        let s = self.type_spec(&t.type_spec);
+        self.edge(id, s, "spec");
+
+        for q in &t.qualifiers {
+            let qid = self.id();
+            self.node(qid, &format!("{:?}", q), NodeKind::Type);
+            self.edge(id, qid, "qualifier");
+        }
+
+        for fs in &t.function_specifiers {
+            let fsid = self.id();
+            self.node(fsid, &format!("{:?}", fs), NodeKind::Type);
+            self.edge(id, fsid, "fn_spec");
+        }
+
+        if let Some(align) = &t.alignment {
+            let aid = self.id();
+            self.node(aid, "_Alignas", NodeKind::Type);
+            self.edge(id, aid, "alignment");
+        }
+
         id
     }
 
@@ -460,7 +516,7 @@ impl DotDumper {
 
     fn block_item(&mut self, b: &BlockItem) -> usize {
         match b {
-            BlockItem::Decl(d) => self.decl(&d.node),
+            BlockItem::Decl(d) => self.declaration(&d.node),
             BlockItem::Stmt(s) => self.stmt(&s.node),
         }
     }
@@ -473,7 +529,7 @@ impl DotDumper {
                 id
             }
             ForInit::Expr(e) => self.expr(&e.node),
-            ForInit::Decl(d) => self.decl(&d.node),
+            ForInit::Decl(d) => self.declaration(&d.node),
         }
     }
 
@@ -499,6 +555,11 @@ impl DotDumper {
             Expr::StringLit(s) => {
                 let id = self.id();
                 self.node(id, &format!("Str \\\"{}\\\"", s.value), NodeKind::Expr);
+                id
+            }
+            Expr::FuncName(name) => {
+                let id = self.id();
+                self.node(id, &format!("FuncName {}", if name.is_empty() { "__func__(not bound)" } else { name }), NodeKind::Expr);
                 id
             }
             Expr::Ident(name) => {
@@ -623,6 +684,31 @@ impl DotDumper {
                 self.edge(id, l, "");
                 let r = self.expr(&b.node);
                 self.edge(id, r, "");
+                id
+            }
+            Expr::Generic { controlling, associated } => {
+                let id = self.id();
+                self.node(id, "_Generic", NodeKind::Expr);
+                let c = self.expr(&controlling.node);
+                self.edge(id, c, "controlling");
+                for (i, assoc) in associated.iter().enumerate() {
+                    let aid = self.id();
+                    let type_label = if let Some(_) = &assoc.type_expr {
+                        "GenericAssoc (type)"
+                    } else {
+                        "GenericAssoc (default)"
+                    };
+                    self.node(aid, type_label, NodeKind::Expr);
+                    self.edge(id, aid, &format!("assoc{}", i));
+
+                    if let Some(te) = &assoc.type_expr {
+                        let teid = self.type_expr(te);
+                        self.edge(aid, teid, "type");
+                    }
+
+                    let vid = self.expr(&assoc.value.node);
+                    self.edge(aid, vid, "value");
+                }
                 id
             }
         }

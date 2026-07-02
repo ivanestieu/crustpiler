@@ -1,2 +1,12 @@
 pub mod ast;
-pub mod type_spec;
+pub(super) mod span;
+pub mod types;
+pub(super) mod struct_union;
+pub(super) mod enums;
+pub(super) mod declarator;
+pub(super) mod parameters;
+pub mod declarations;
+pub(super) mod operators;
+pub(super) mod statements;
+pub(super) mod function_def;
+pub mod decl_specifiers;
