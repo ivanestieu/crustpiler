@@ -1,12 +1,12 @@
-use crate::ast::decl_specifiers::TypeExpr;
 // =============================================================================
 // C AST
 // Covers: full expressions, statements, declarations, types
 // =============================================================================
-use crate::ast::declarations::{Decl, Declaration, InitItem};
+use crate::ast::declarations::{Declaration, InitItem};
 use crate::ast::function_def::FunctionDef;
 use crate::ast::operators::{AssignOp, BinaryOp, PostfixOp, UnaryOp};
 use crate::ast::span::Spanned;
+use crate::ast::types::TypeName;
 use crate::literals::{FloatLit, IntLit, StringLit};
 
 // -----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ pub enum Expr {
 
     // Compound literal: (Type){init}
     CompoundLit {
-        ty: TypeExpr,
+        type_name: TypeName,
         init: Vec<InitItem>,
     },
 
@@ -85,16 +85,16 @@ pub enum Expr {
 
     // Cast: (Type)expr
     Cast {
-        ty: TypeExpr,
+        type_name: TypeName,
         expr: Box<Spanned<Expr>>,
     },
 
     // sizeof
     SizeofExpr(Box<Spanned<Expr>>),
-    SizeofType(TypeExpr),
+    SizeofType(TypeName),
 
     // _Alignof
-    AlignofType(TypeExpr),
+    AlignofType(TypeName),
 
     // _Generic
     Generic {
@@ -113,12 +113,12 @@ pub enum Expr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
-    FunctionDef(Spanned<FunctionDef>),
+    FunctionDef(FunctionDef),
     Declaration(Declaration),                   // global variable / typedef / extern
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GenericAssoc {
-    pub type_expr: Option<TypeExpr>,
+    pub type_name: Option<TypeName>,
     pub value: Spanned<Expr>,
 }

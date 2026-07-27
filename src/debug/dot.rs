@@ -21,9 +21,11 @@ use crate::ast::declarator::Declarator;
 use crate::ast::function_def::FunctionDef;
 use crate::ast::parameters::ParamDecl;
 use crate::ast::statements::{BlockItem, ForInit, Stmt};
-use crate::ast::decl_specifiers::TypeExpr;
-use crate::ast::types::TypeSpec;
+use crate::ast::decl_specifiers::{AlignmentSpecifier, TypeExpr};
+use crate::ast::span::Spanned;
+use crate::ast::types::{TypeName, TypeSpec};
 use crate::criterion::criterion::{CriterionAssertion, CriterionBodyItem, CriterionFile, CriterionSuite, CriterionTest};
+use crate::lexer::errors::{LexError, LexErrorKind};
 
 pub struct DotDumper {
     next_id: usize,
@@ -155,7 +157,7 @@ impl DotDumper {
 
     pub fn item(&mut self, it: &Item) -> usize {
         match it {
-            Item::FunctionDef(f) => self.function_def(&f.node),
+            Item::FunctionDef(f) => self.function_def(&f),
             Item::Declaration(d) => self.declaration(d),
         }
     }
@@ -275,6 +277,13 @@ impl DotDumper {
             let c = self.declarator(inner);
             self.edge(id, c, "inner");
         }
+        if let Declarator::Pointer { inner, qualifiers } = d {
+            for Spanned { node: q, .. }  in qualifiers {
+                let qid = self.id();
+                self.node(qid, &format!("{:?}", q), NodeKind::Type);
+                self.edge(id, qid, "qualifier");
+            }
+        }
         // Array size / function params, if present
         if let Declarator::Array { size, .. } = d {
             use crate::ast::declarator::ArraySize;
@@ -285,14 +294,19 @@ impl DotDumper {
                 }
                 ArraySize::Vla => {
                     let vid = self.id();
-                    self.node(vid, "[*]", NodeKind::Type);
+                    self.node(vid, "VLA *", NodeKind::Type);
                     self.edge(id, vid, "");
                 }
                 ArraySize::None => {}
             }
         }
         if let Declarator::Function { params, variadic, .. } = d {
-            for p in params {
+            let params = if params.is_some() {
+                params.clone().unwrap()
+            } else {
+                Vec::new()
+            };
+            for p in &params {
                 let c = self.param(p);
                 self.edge(id, c, "param");
             }
@@ -332,10 +346,10 @@ impl DotDumper {
             TypeSpec::Enum(e) => {
                 format!("enum {}", e.name.clone().unwrap_or_else(|| "<anon>".into()))
             }
-            TypeSpec::Atomic(te) => {
+            TypeSpec::Atomic(tn) => {
                 let id = self.id();
                 self.node(id, "_Atomic", NodeKind::Type);
-                let inner = self.type_expr(te);
+                let inner = self.type_name(tn);
                 self.edge(id, inner, "");
                 return id;
             }
@@ -377,7 +391,41 @@ impl DotDumper {
             let aid = self.id();
             self.node(aid, "_Alignas", NodeKind::Type);
             self.edge(id, aid, "alignment");
+            match align {
+                AlignmentSpecifier::Type(tn) => {
+                    let c = self.type_name(tn);
+                    self.edge(aid, c, "type");
+                }
+                AlignmentSpecifier::Expr(e) => {
+                    let c = self.expr(&e);
+                    self.edge(aid, c, "expr");
+                }
+            }
         }
+
+        id
+    }
+
+    // A type-name: specifier-qualifier list + an abstract declarator.
+    // The declarator is Abstract-rooted; Abstract means "no derivation".
+    fn type_name(&mut self, t: &TypeName) -> usize {
+        let id = self.id();
+        self.node(id, "TypeName", NodeKind::Type);
+
+        // base type specifier
+        let s = self.type_spec(&t.type_expr.type_spec);
+        self.edge(id, s, "spec");
+
+        // qualifiers on the base
+        for q in &t.type_expr.qualifiers {
+            let qid = self.id();
+            self.node(qid, &format!("{:?}", q), NodeKind::Type);
+            self.edge(id, qid, "qualifier");
+        }
+
+        // the abstract declarator chain (*, [], (), or Abstract leaf)
+        let d = self.declarator(&t.derived);
+        self.edge(id, d, "declarator");
 
         id
     }
@@ -549,7 +597,7 @@ impl DotDumper {
             }
             Expr::CharLit(c) => {
                 let id = self.id();
-                self.node(id, &format!("Char '{}'", c), NodeKind::Expr);
+                self.node(id, &format!("Char '{}'", c.escape_debug()), NodeKind::Expr);
                 id
             }
             Expr::StringLit(s) => {
@@ -567,9 +615,11 @@ impl DotDumper {
                 self.node(id, &format!("Ident {}", name), NodeKind::Expr);
                 id
             }
-            Expr::CompoundLit { init, .. } => {
+            Expr::CompoundLit { type_name, init } => {
                 let id = self.id();
                 self.node(id, "CompoundLit", NodeKind::Expr);
+                let t = self.type_name(type_name);
+                self.edge(id, t, "type");
                 for it in init {
                     let c = self.init_item(it);
                     self.edge(id, c, "");
@@ -647,10 +697,10 @@ impl DotDumper {
                 self.edge(id, c, "");
                 id
             }
-            Expr::Cast { ty, expr } => {
+            Expr::Cast { type_name, expr } => {
                 let id = self.id();
                 self.node(id, "Cast", NodeKind::Expr);
-                let t = self.type_expr(ty);
+                let t = self.type_name(type_name);
                 self.edge(id, t, "type");
                 let c = self.expr(&expr.node);
                 self.edge(id, c, "");
@@ -666,14 +716,14 @@ impl DotDumper {
             Expr::SizeofType(t) => {
                 let id = self.id();
                 self.node(id, "sizeof type", NodeKind::Expr);
-                let c = self.type_expr(t);
+                let c = self.type_name(t);
                 self.edge(id, c, "");
                 id
             }
             Expr::AlignofType(t) => {
                 let id = self.id();
                 self.node(id, "_Alignof", NodeKind::Expr);
-                let c = self.type_expr(t);
+                let c = self.type_name(t);
                 self.edge(id, c, "");
                 id
             }
@@ -693,7 +743,7 @@ impl DotDumper {
                 self.edge(id, c, "controlling");
                 for (i, assoc) in associated.iter().enumerate() {
                     let aid = self.id();
-                    let type_label = if let Some(_) = &assoc.type_expr {
+                    let type_label = if let Some(_) = &assoc.type_name {
                         "GenericAssoc (type)"
                     } else {
                         "GenericAssoc (default)"
@@ -701,8 +751,8 @@ impl DotDumper {
                     self.node(aid, type_label, NodeKind::Expr);
                     self.edge(id, aid, &format!("assoc{}", i));
 
-                    if let Some(te) = &assoc.type_expr {
-                        let teid = self.type_expr(te);
+                    if let Some(tn) = &assoc.type_name {
+                        let teid = self.type_name(tn);
                         self.edge(aid, teid, "type");
                     }
 
@@ -743,7 +793,6 @@ fn escape(s: &str) -> String {
         .replace('"', "\\\"")
         // keep already-escaped \n sequences working: we used "\\n" in labels,
         // which after the backslash-escape above becomes "\\\\n"; undo that.
-        .replace("\\\\n", "\\n")
 }
 
 // ── Public entry points ──────────────────────────────────────────────────────

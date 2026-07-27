@@ -18,6 +18,10 @@ impl Span {
             end: self.end.max(other.end),
         }
     }
+
+    pub fn to_string(&self) -> String {
+        format!("{}..{}", self.start, self.end)
+    }
 }
 
 // Convenience wrapper — every meaningful node carries its span

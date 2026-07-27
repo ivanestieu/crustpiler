@@ -5,12 +5,13 @@
 use crate::ast::ast::Expr;
 use crate::ast::decl_specifiers::TypeExpr;
 use crate::ast::declarator::Declarator;
-use crate::ast::span::{Span, Spanned};
+use crate::ast::span::{Spanned};
+use crate::ast::types::TypeName;
 use crate::literals::StringLit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AlignmentSpecifier {
-    Type(Box<TypeExpr>),
+    Type(Box<TypeName>),
     Expr(Box<Expr>),
 }
 

@@ -2,14 +2,12 @@
 // OPERATORS
 // -----------------------------------------------------------------------------
 
-use crate::ast::ast::Expr;
-use crate::ast::span::Span;
 use crate::lexer::token::Token;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOp {
-    Neg,          // -
-    Pos,          // +
+    Minus,          // -
+    Plus,          // +
     Not,          // !
     BitNot,       // ~
     Deref,        // *
@@ -150,8 +148,8 @@ impl AsUnaryOp for crate::lexer::token::Token {
         match self {
             Token::IncOp => Ok(UnaryOp::PreInc),
             Token::DecOp => Ok(UnaryOp::PreDec),
-            Token::Minus => Ok(UnaryOp::Neg),
-            Token::Plus => Ok(UnaryOp::Pos),
+            Token::Minus => Ok(UnaryOp::Minus),
+            Token::Plus => Ok(UnaryOp::Plus),
             Token::ExclamationMark => Ok(UnaryOp::Not),
             Token::Tilde => Ok(UnaryOp::BitNot),
             Token::Star => Ok(UnaryOp::Deref),

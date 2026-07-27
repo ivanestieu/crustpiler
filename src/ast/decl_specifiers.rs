@@ -3,7 +3,7 @@
 // ONE big specifier structure, collected by ONE shared builder, with context
 // rules applied at add time.
 
-use crate::ast::declarations::{AlignmentSpecifier};
+pub(crate) use crate::ast::declarations::{AlignmentSpecifier};
 use crate::ast::types::{ArithType, BaseType, Complex, FunctionSpecifier, Sign, SizeSpec, StorageClass, TypeQualifier, TypeSpec};
 
 // -----------------------------------------------------------------------------
@@ -17,6 +17,12 @@ pub struct TypeExpr {
     pub qualifiers: Vec<TypeQualifier>,
     pub function_specifiers: Vec<FunctionSpecifier>,
     pub alignment: Option<AlignmentSpecifier>,
+}
+
+impl TypeExpr {
+    pub(crate) fn is_void(&self) -> bool {
+        self.type_spec == TypeSpec::Void
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -84,7 +90,7 @@ impl TypeExprContext {
 // depending on context, resolve on finish
 // -----------------------------------------------------------------------------
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TypeExprBuilder {
     context: TypeExprContext,
     // storage
@@ -213,16 +219,30 @@ impl TypeExprBuilder {
 
     // ── finish: resolve type ─────────────────────
     pub fn finish(self) -> Result<TypeExpr, String> {
-        let type_spec = self.resolve_type_spec()?;
-
-        Ok(TypeExpr {
-            storage: self.storage,
-            thread_local: self.thread_local,
-            type_spec,
-            qualifiers: self.qualifiers,
-            function_specifiers: self.function_specifiers,
-            alignment: self.alignment,
-        })
+        let type_spec = self.resolve_type_spec();
+        if type_spec.is_err()
+            && self.storage.is_none()
+            && self.thread_local == false
+            && self.qualifiers.is_empty()
+            && self.function_specifiers.is_empty()
+            && self.alignment.is_none()
+        {
+            Err("Invalid TypeExpr: all fields cannot be empty.".into())
+        } else {
+            Ok(TypeExpr {
+                storage: self.storage,
+                thread_local: self.thread_local,
+                type_spec: type_spec.ok().unwrap_or(TypeSpec::Arithmetic(ArithType {
+                    sign: self.sign,
+                    size: SizeSpec::None,
+                    base: BaseType::Int,
+                    complex: self.complex,
+                })),
+                qualifiers: self.qualifiers,
+                function_specifiers: self.function_specifiers,
+                alignment: self.alignment,
+            })
+        }
     }
 
     fn resolve_type_spec(&self) -> Result<TypeSpec, String> {
@@ -247,6 +267,13 @@ impl TypeExprBuilder {
         validate_base_size(&base, &size)?;
         validate_base_sign(&base, &self.sign)?;
         validate_base_complex(&base, &self.complex)?;
+        if self.base.is_none()
+            && self.sign.is_none()
+            && self.complex.is_none()
+            && size == SizeSpec::None
+        {
+            return Err("no type specifier found; expected one of: `void`, `_Bool`, `_Complex`, `_Imaginary`, `char`, `short`, `int`, `long`, `float`, `double`, or a struct/union/enum/typedef name".into());
+        }
         Ok(TypeSpec::Arithmetic(ArithType {
             sign: self.sign.clone(),
             size,
@@ -290,7 +317,7 @@ fn validate_base_size(base: &BaseType, size: &SizeSpec) -> Result<(), String> {
 
 fn validate_base_sign(base: &BaseType, sign: &Option<Sign>) -> Result<(), String> {
     match base {
-        (BaseType::Float | BaseType::Double) if sign.is_some() =>
+        BaseType::Float | BaseType::Double if sign.is_some() =>
             Err("floating types cannot be `signed` or `unsigned`".into()),
         _ => Ok(()),
     }

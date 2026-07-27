@@ -6,7 +6,6 @@ pub mod parser;
 pub mod output;
 pub mod literals;
 
-use std::fmt::format;
 use crate::ast::ast::Item;
 use crate::lexer::token;
 use crate::lexer::token::SpannedToken;

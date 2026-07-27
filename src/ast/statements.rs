@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 
 use crate::ast::ast::Expr;
-use crate::ast::declarations::{Decl, Declaration};
+use crate::ast::declarations::Declaration;
 use crate::ast::span::Spanned;
 
 #[derive(Debug, Clone, PartialEq)]

@@ -34,7 +34,8 @@ pub enum Declarator {
     },
     Function {
         inner: Box<Declarator>,
-        params: Vec<ParamDecl>,
+        params: Option<Vec<ParamDecl>>,
+        old_style_params: Option<Vec<Expr>>,
         variadic: bool,
     },
 }

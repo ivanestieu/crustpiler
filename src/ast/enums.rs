@@ -3,7 +3,6 @@
 // -----------------------------------------------------------------------------
 
 use crate::ast::ast::Expr;
-use crate::ast::span::Span;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumSpec {
@@ -15,6 +14,5 @@ pub struct EnumSpec {
 pub struct Enumerator {
     pub name: String,
     pub value: Option<Box<Expr>>,          // explicit = value
-    pub span: Span,
 }
 

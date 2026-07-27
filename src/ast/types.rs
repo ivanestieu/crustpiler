@@ -1,4 +1,5 @@
 pub(crate) use crate::ast::decl_specifiers::TypeExpr;
+use crate::ast::declarator::Declarator;
 use crate::ast::enums::EnumSpec;
 use crate::ast::struct_union::StructOrUnion;
 use crate::lexer::token::Token;
@@ -52,7 +53,7 @@ pub enum TypeSpec {
     Named(String),      // e.g. size_t, uint8_t, MyStruct
 
     // Atomic
-    Atomic(Box<TypeExpr>), // eg. _Atomic(type-name)
+    Atomic(Box<TypeName>), // eg. _Atomic(type-name)
 }
 
 /// An arithmetic type decomposed into its three independent axes.
@@ -202,22 +203,10 @@ impl AsFunctionSpecifier for crate::lexer::token::Token {
     }
 }
 
-
-/// Derived layers (pointer/array/function) — simplified for this module.
 #[derive(Debug, Clone, PartialEq)]
-pub enum DerivedType {
-    Pointer(Vec<TypeQualifier>),
-    Array,
-    Function,
-}
-
-/// The universal "resolved type" — what every context extracts when it just
-/// needs "the type here". Base spec + its qualifiers + derived layers.
-#[derive(Debug, Clone, PartialEq)]
-pub struct QualifiedType {
-    pub qualifiers: Vec<TypeQualifier>,
-    pub spec: TypeSpec,
-    pub derived: Vec<DerivedType>,
+pub struct TypeName {
+    pub type_expr: TypeExpr,
+    pub derived: Declarator,
 }
 
 

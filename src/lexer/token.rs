@@ -261,6 +261,8 @@ pub enum Token {
     Pipe,
     #[token("?")]
     InterrogationMark,
+
+    EOF,
 }
 
 #[derive(Debug, Clone, PartialEq)]
