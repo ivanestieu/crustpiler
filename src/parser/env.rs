@@ -3,7 +3,6 @@ use std::collections::HashSet;
 /// Typedef environment — the heart of context-sensitive C parsing.
 /// Empty here, but this is exactly where `typedef int Foo;` would register
 /// "Foo" so a later `Foo x;` parses as a declaration, not an expression.
-#[derive(Default)]
 pub struct Env {
     scopes: Vec<Scope>,
 }

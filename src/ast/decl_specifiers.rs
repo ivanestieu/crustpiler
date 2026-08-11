@@ -3,6 +3,7 @@
 // ONE big specifier structure, collected by ONE shared builder, with context
 // rules applied at add time.
 
+use itertools::Itertools;
 pub(crate) use crate::ast::declarations::AlignmentSpecifier;
 use crate::ast::types::{
     ArithType, BaseType, Complex, FunctionSpecifier, Sign, SizeSpec, StorageClass, TypeQualifier,
@@ -25,6 +26,9 @@ pub struct TypeExpr {
 impl TypeExpr {
     pub(crate) fn is_void(&self) -> bool {
         self.type_spec == TypeSpec::Void
+    }
+    pub fn is_typedef(&self) -> bool {
+        self.storage.is_some_and(|sc| sc == StorageClass::Typedef)
     }
 }
 

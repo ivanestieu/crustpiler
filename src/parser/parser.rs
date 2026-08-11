@@ -1,9 +1,6 @@
 use crate::ast::ast::{Expr, GenericAssoc, Item};
 use crate::ast::decl_specifiers::{TypeExprBuilder, TypeExprContext};
-use crate::ast::declarations::{
-    AlignmentSpecifier, Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer,
-    StaticAssert,
-};
+use crate::ast::declarations::{AlignmentSpecifier, Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer, StaticAssert};
 use crate::ast::declarator::{ArraySize, Declarator};
 use crate::ast::enums::{EnumSpec, Enumerator};
 use crate::ast::function_def::FunctionDef;
@@ -11,15 +8,11 @@ use crate::ast::operators::{AsAssignOp, AsBinaryOp, AsUnaryOp, PostfixOp, TraitB
 use crate::ast::parameters::ParamDecl;
 use crate::ast::span::{Span, Spanned};
 use crate::ast::struct_union::{FieldDecl, FieldDeclarator, StructMember, StructOrUnion};
-use crate::ast::types::{
-    AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, TypeExpr,
-    TypeName, TypeQualifier, TypeSpec,
-};
+use crate::ast::types::{AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, StorageClass, TypeExpr, TypeName, TypeQualifier, TypeSpec};
 use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::env::Env;
 use crate::parser::errors::{Contextualize, ParseError};
-use std::vec;
 
 pub struct Parser {
     tokens: Vec<SpannedToken>,
@@ -32,7 +25,7 @@ impl Parser {
         Self {
             tokens,
             pos: 0,
-            env: Env::default(),
+            env: Env::new(),
         }
     }
     fn attempt<T, F>(&mut self, f: F) -> Result<T, ParseError>
@@ -101,7 +94,23 @@ impl Parser {
         }
     }
 
-    /// decl := storage? qualifier* type init_decl ("," init_decl)* ";"
+    fn extract_identifier(declarator: &Declarator) -> Result<String, ParseError> {
+        match declarator {
+            Declarator::Ident(name) => Ok(name.clone()),
+            Declarator::Pointer {
+                inner,
+                ..
+            } | Declarator::Array {
+                inner,
+                ..
+            } | Declarator::Function {
+                inner,
+                ..
+            } => Self::extract_identifier(inner),
+            _ => Err(parse_error!("Expected identifier, found {:?}", declarator)),
+        }
+    }
+
     pub fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
         let start = self.peek_span();
 
@@ -128,6 +137,15 @@ impl Parser {
                 "Expected another initializer after one followed by a comma",
             )?);
         }
+
+        if type_expr.is_typedef() {
+            declarators.iter().for_each(|init_decl| {
+                if let Ok(ident) = Self::extract_identifier(&init_decl.declarator) {
+                    self.env.define_typedef(ident);
+                }
+            });
+        }
+
 
         self.expect(&Token::SemiColon)
             .on_err_context("parse_declaration", "a semicolon should end a declaration")?;
