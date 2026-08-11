@@ -11,7 +11,7 @@ use crate::ast::types::TypeQualifier;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ArraySize {
     None, // []
-    Vla, // [*]
+    Vla,  // [*]
     Fixed(Box<Expr>),
 }
 
@@ -19,7 +19,7 @@ pub enum ArraySize {
 pub enum Declarator {
     // Leaf: just a name (or abstract — no name, for param/cast types)
     Ident(String),
-    Abstract,                              // nameless, used in casts / params
+    Abstract, // nameless, used in casts / params
 
     // Derived
     Pointer {
@@ -28,7 +28,7 @@ pub enum Declarator {
     },
     Array {
         inner: Box<Declarator>,
-        qualifiers: Vec<Spanned<TypeQualifier>>,    // int a[const 3] is legal
+        qualifiers: Vec<Spanned<TypeQualifier>>, // int a[const 3] is legal
         is_static: bool,
         size: ArraySize,
     },

@@ -16,15 +16,19 @@
 // =============================================================================
 
 use crate::ast::ast::{Expr, Item};
-use crate::ast::declarations::{Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer};
+use crate::ast::decl_specifiers::{AlignmentSpecifier, TypeExpr};
+use crate::ast::declarations::{
+    Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer,
+};
 use crate::ast::declarator::Declarator;
 use crate::ast::function_def::FunctionDef;
 use crate::ast::parameters::ParamDecl;
-use crate::ast::statements::{BlockItem, ForInit, Stmt};
-use crate::ast::decl_specifiers::{AlignmentSpecifier, TypeExpr};
 use crate::ast::span::Spanned;
+use crate::ast::statements::{BlockItem, ForInit, Stmt};
 use crate::ast::types::{TypeName, TypeSpec};
-use crate::criterion::criterion::{CriterionAssertion, CriterionBodyItem, CriterionFile, CriterionSuite, CriterionTest};
+use crate::criterion::criterion::{
+    CriterionAssertion, CriterionBodyItem, CriterionFile, CriterionSuite, CriterionTest,
+};
 use crate::lexer::errors::{LexError, LexErrorKind};
 
 pub struct DotDumper {
@@ -34,7 +38,10 @@ pub struct DotDumper {
 
 impl DotDumper {
     pub fn new() -> Self {
-        Self { next_id: 0, out: String::new() }
+        Self {
+            next_id: 0,
+            out: String::new(),
+        }
     }
 
     // Allocate a fresh node id.
@@ -59,11 +66,14 @@ impl DotDumper {
     // Emit an edge parent -> child, optionally labelled (e.g. field name).
     fn edge(&mut self, parent: usize, child: usize, label: &str) {
         if label.is_empty() {
-            self.out.push_str(&format!("  n{} -> n{};\n", parent, child));
+            self.out
+                .push_str(&format!("  n{} -> n{};\n", parent, child));
         } else {
             self.out.push_str(&format!(
                 "  n{} -> n{} [label=\"{}\", fontsize=9, color=gray40];\n",
-                parent, child, escape(label)
+                parent,
+                child,
+                escape(label)
             ));
         }
     }
@@ -195,7 +205,12 @@ impl DotDumper {
                 self.node(id, "StaticAssert", NodeKind::Decl);
                 let c = self.expr(&sa_spanned.node.cond);
                 self.edge(id, c, "cond");
-                // Note: message is a StringLit, displayed as label
+
+                let msg_id = self.id();
+                let message = format!("\"{}\"", sa_spanned.node.message.value);
+                self.node(msg_id, &message, NodeKind::Expr);
+                self.edge(id, msg_id, "message");
+
                 id
             }
         }
@@ -278,7 +293,7 @@ impl DotDumper {
             self.edge(id, c, "inner");
         }
         if let Declarator::Pointer { inner, qualifiers } = d {
-            for Spanned { node: q, .. }  in qualifiers {
+            for Spanned { node: q, .. } in qualifiers {
                 let qid = self.id();
                 self.node(qid, &format!("{:?}", q), NodeKind::Type);
                 self.edge(id, qid, "qualifier");
@@ -300,7 +315,10 @@ impl DotDumper {
                 ArraySize::None => {}
             }
         }
-        if let Declarator::Function { params, variadic, .. } = d {
+        if let Declarator::Function {
+            params, variadic, ..
+        } = d
+        {
             let params = if params.is_some() {
                 params.clone().unwrap()
             } else {
@@ -332,31 +350,178 @@ impl DotDumper {
     // ── Types ─────────────────────────────────────────────────────────────────
 
     fn type_spec(&mut self, t: &TypeSpec) -> usize {
-        let label = match t {
-            TypeSpec::Arithmetic(a) => a.to_c_string(), // e.g. "unsigned long int"
-            TypeSpec::Void => "void".to_string(),
-            TypeSpec::Bool => "_Bool".to_string(),
-            TypeSpec::Named(n) => format!("Type {}", n),
+        match t {
+            TypeSpec::Arithmetic(a) => {
+                let id = self.id();
+                self.node(id, &a.to_c_string(), NodeKind::Type);
+                id
+            }
+            TypeSpec::Void => {
+                let id = self.id();
+                self.node(id, "void", NodeKind::Type);
+                id
+            }
+            TypeSpec::Bool => {
+                let id = self.id();
+                self.node(id, "_Bool", NodeKind::Type);
+                id
+            }
+            TypeSpec::Named(n) => {
+                let id = self.id();
+                self.node(id, &format!("Type {}", n), NodeKind::Type);
+                id
+            }
             TypeSpec::Struct(s) => {
-                format!("struct {}", s.name.clone().unwrap_or_else(|| "<anon>".into()))
+                let label = format!(
+                    "struct {}",
+                    s.name.clone().unwrap_or_else(|| "<anon>".into())
+                );
+                let id = self.id();
+                self.node(id, &label, NodeKind::Type);
+
+                if let Some(fields) = &s.fields {
+                    for (i, member) in fields.iter().enumerate() {
+                        match member {
+                            crate::ast::struct_union::StructMember::Field(f) => {
+                                let fid = self.id();
+                                self.node(fid, &format!("FieldDecl {}", i), NodeKind::Decl);
+                                self.edge(id, fid, "member");
+
+                                // field type
+                                let t = self.type_expr(&f.type_expr);
+                                self.edge(fid, t, "type");
+
+                                // declarators (may be empty for e.g. unnamed structs/members)
+                                for (j, fd) in f.declarators.iter().enumerate() {
+                                    let did = self.id();
+                                    let decl_label = if fd.declarator.is_some() {
+                                        format!("FieldDeclarator {}", j)
+                                    } else if fd.bit_width.is_some() {
+                                        "AnonBitField".to_string()
+                                    } else {
+                                        "FieldDeclarator".to_string()
+                                    };
+                                    self.node(did, &decl_label, NodeKind::Decl);
+                                    self.edge(fid, did, "decl");
+
+                                    if let Some(d) = &fd.declarator {
+                                        let nd = self.declarator(d);
+                                        self.edge(did, nd, "declarator");
+                                    }
+                                    if let Some(bw) = &fd.bit_width {
+                                        let bid = self.expr(&bw.node);
+                                        self.edge(did, bid, "bits");
+                                    }
+                                }
+                            }
+                            crate::ast::struct_union::StructMember::StaticAssert(sa) => {
+                                let sid = self.id();
+                                self.node(sid, "StaticAssert", NodeKind::Decl);
+                                self.edge(id, sid, "member");
+                                let c = self.expr(&sa.cond);
+                                self.edge(sid, c, "cond");
+
+                                let msg_id = self.id();
+                                let message = format!("\"{}\"", sa.message.value);
+                                self.node(msg_id, &message, NodeKind::Expr);
+                                self.edge(sid, msg_id, "message");
+                            }
+                        }
+                    }
+                }
+
+                id
             }
             TypeSpec::Union(s) => {
-                format!("union {}", s.name.clone().unwrap_or_else(|| "<anon>".into()))
+                let label = format!(
+                    "union {}",
+                    s.name.clone().unwrap_or_else(|| "<anon>".into())
+                );
+                let id = self.id();
+                self.node(id, &label, NodeKind::Type);
+
+                if let Some(fields) = &s.fields {
+                    for (i, member) in fields.iter().enumerate() {
+                        match member {
+                            crate::ast::struct_union::StructMember::Field(f) => {
+                                let fid = self.id();
+                                self.node(fid, &format!("FieldDecl {}", i), NodeKind::Decl);
+                                self.edge(id, fid, "member");
+
+                                let t = self.type_expr(&f.type_expr);
+                                self.edge(fid, t, "type");
+
+                                for (j, fd) in f.declarators.iter().enumerate() {
+                                    let did = self.id();
+                                    let decl_label = if fd.declarator.is_some() {
+                                        format!("FieldDeclarator {}", j)
+                                    } else if fd.bit_width.is_some() {
+                                        "AnonBitField".to_string()
+                                    } else {
+                                        "FieldDeclarator".to_string()
+                                    };
+                                    self.node(did, &decl_label, NodeKind::Decl);
+                                    self.edge(fid, did, "decl");
+
+                                    if let Some(d) = &fd.declarator {
+                                        let nd = self.declarator(d);
+                                        self.edge(did, nd, "declarator");
+                                    }
+                                    if let Some(bw) = &fd.bit_width {
+                                        let bid = self.expr(&bw.node);
+                                        self.edge(did, bid, "bits");
+                                    }
+                                }
+                            }
+                            crate::ast::struct_union::StructMember::StaticAssert(sa) => {
+                                let sid = self.id();
+                                self.node(sid, "StaticAssert", NodeKind::Decl);
+                                self.edge(id, sid, "member");
+                                let c = self.expr(&sa.cond);
+                                self.edge(sid, c, "cond");
+
+                                let msg_id = self.id();
+                                let message = format!("\"{}\"", sa.message.value);
+                                self.node(msg_id, &message, NodeKind::Expr);
+                                self.edge(sid, msg_id, "message");
+                            }
+                        }
+                    }
+                }
+
+                id
             }
             TypeSpec::Enum(e) => {
-                format!("enum {}", e.name.clone().unwrap_or_else(|| "<anon>".into()))
+                let id = self.id();
+                self.node(
+                    id,
+                    &format!("enum {}", e.name.clone().unwrap_or_else(|| "<anon>".into())),
+                    NodeKind::Type,
+                );
+
+                if let Some(variants) = &e.variants {
+                    for variant in variants {
+                        let vid = self.id();
+                        self.node(vid, &format!("Enumerator '{}'", variant.name), NodeKind::Decl);
+                        self.edge(id, vid, "variant");
+
+                        if let Some(value) = &variant.value {
+                            let val = self.expr(value);
+                            self.edge(vid, val, "value");
+                        }
+                    }
+                }
+
+                id
             }
             TypeSpec::Atomic(tn) => {
                 let id = self.id();
                 self.node(id, "_Atomic", NodeKind::Type);
                 let inner = self.type_name(tn);
                 self.edge(id, inner, "");
-                return id;
+                id
             }
-        };
-        let id = self.id();
-        self.node(id, &label, NodeKind::Type);
-        id
+        }
     }
 
     fn type_expr(&mut self, t: &TypeExpr) -> usize {
@@ -495,7 +660,12 @@ impl DotDumper {
                 self.edge(id, c, "cond");
                 id
             }
-            Stmt::For { init, cond, step, body } => {
+            Stmt::For {
+                init,
+                cond,
+                step,
+                body,
+            } => {
                 let id = self.id();
                 self.node(id, "For", NodeKind::Stmt);
                 let i = self.for_init(init);
@@ -607,7 +777,18 @@ impl DotDumper {
             }
             Expr::FuncName(name) => {
                 let id = self.id();
-                self.node(id, &format!("FuncName {}", if name.is_empty() { "__func__(not bound)" } else { name }), NodeKind::Expr);
+                self.node(
+                    id,
+                    &format!(
+                        "FuncName {}",
+                        if name.is_empty() {
+                            "__func__(not bound)"
+                        } else {
+                            name
+                        }
+                    ),
+                    NodeKind::Expr,
+                );
                 id
             }
             Expr::Ident(name) => {
@@ -736,7 +917,10 @@ impl DotDumper {
                 self.edge(id, r, "");
                 id
             }
-            Expr::Generic { controlling, associated } => {
+            Expr::Generic {
+                controlling,
+                associated,
+            } => {
                 let id = self.id();
                 self.node(id, "_Generic", NodeKind::Expr);
                 let c = self.expr(&controlling.node);
@@ -778,21 +962,20 @@ enum NodeKind {
 impl NodeKind {
     fn style(self) -> (&'static str, &'static str) {
         match self {
-            NodeKind::Crit => ("box", "#ffe0b2"),   // orange  — Criterion layer
-            NodeKind::Decl => ("box", "#c8e6c9"),    // green   — declarations
-            NodeKind::Type => ("ellipse", "#bbdefb"),// blue    — types
-            NodeKind::Stmt => ("box", "#e1bee7"),    // purple  — statements
-            NodeKind::Expr => ("ellipse", "#fff9c4"),// yellow  — expressions
+            NodeKind::Crit => ("box", "#ffe0b2"), // orange  — Criterion layer
+            NodeKind::Decl => ("box", "#c8e6c9"), // green   — declarations
+            NodeKind::Type => ("ellipse", "#bbdefb"), // blue    — types
+            NodeKind::Stmt => ("box", "#e1bee7"), // purple  — statements
+            NodeKind::Expr => ("ellipse", "#fff9c4"), // yellow  — expressions
         }
     }
 }
 
 // Escape characters that would break the DOT label string.
 fn escape(s: &str) -> String {
-    s.replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        // keep already-escaped \n sequences working: we used "\\n" in labels,
-        // which after the backslash-escape above becomes "\\\\n"; undo that.
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+    // keep already-escaped \n sequences working: we used "\\n" in labels,
+    // which after the backslash-escape above becomes "\\\\n"; undo that.
 }
 
 // ── Public entry points ──────────────────────────────────────────────────────

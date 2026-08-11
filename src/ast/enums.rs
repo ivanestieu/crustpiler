@@ -13,6 +13,5 @@ pub struct EnumSpec {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enumerator {
     pub name: String,
-    pub value: Option<Box<Expr>>,          // explicit = value
+    pub value: Option<Box<Expr>>, // explicit = value
 }
-

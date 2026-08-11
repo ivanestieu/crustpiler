@@ -7,7 +7,7 @@
 // =============================================================================
 
 use std::fmt;
-use std::num::{ParseIntError, ParseFloatError};
+use std::num::{ParseFloatError, ParseIntError};
 
 /// What specifically went wrong while lexing a token.
 #[derive(Debug, Clone, PartialEq)]
@@ -17,22 +17,40 @@ pub enum LexErrorKind {
 
     // ── Numeric literals ────────────────────────────────────────────────
     /// Integer text didn't parse (overflow, empty, bad digit for the base).
-    InvalidInteger { text: String, reason: String },
+    InvalidInteger {
+        text: String,
+        reason: String,
+    },
     /// Float text didn't parse.
-    InvalidFloat { text: String, reason: String },
+    InvalidFloat {
+        text: String,
+        reason: String,
+    },
     /// Hex float couldn't be converted (out of range, malformed).
-    InvalidHexFloat { text: String },
+    InvalidHexFloat {
+        text: String,
+    },
 
     // ── Char / string escapes ───────────────────────────────────────────
     /// `\q` and friends — backslash followed by an unknown letter.
-    UnknownEscape { escape: char },
+    UnknownEscape {
+        escape: char,
+    },
     /// `\x` with no hex digits, or `\u`/`\U` with too few.
-    MalformedEscape { text: String },
+    MalformedEscape {
+        text: String,
+    },
     /// `\uD800` (surrogate) or `\U00110000` (> U+10FFFF): not a Unicode scalar.
-    InvalidCodePoint { value: u32 },
+    InvalidCodePoint {
+        value: u32,
+    },
     /// A char literal that contained zero or more-than-allowed characters.
-    BadCharLiteral { text: String },
-    BadStringLiteral { text: String },
+    BadCharLiteral {
+        text: String,
+    },
+    BadStringLiteral {
+        text: String,
+    },
 }
 
 impl fmt::Display for LexErrorKind {
@@ -57,7 +75,11 @@ impl fmt::Display for LexErrorKind {
                 write!(f, "malformed escape sequence `{}`", text)
             }
             LexErrorKind::InvalidCodePoint { value } => {
-                write!(f, "`\\u{{{:04X}}}` is not a valid Unicode scalar value", value)
+                write!(
+                    f,
+                    "`\\u{{{:04X}}}` is not a valid Unicode scalar value",
+                    value
+                )
             }
             LexErrorKind::BadCharLiteral { text } => {
                 write!(f, "invalid character literal `{}`", text)
@@ -85,7 +107,10 @@ impl LexError {
     }
 
     pub fn with_span(kind: LexErrorKind, span: std::ops::Range<usize>) -> Self {
-        Self { kind, span: Some(span) }
+        Self {
+            kind,
+            span: Some(span),
+        }
     }
 }
 

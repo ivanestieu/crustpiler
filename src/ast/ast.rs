@@ -80,7 +80,7 @@ pub enum Expr {
     Member {
         expr: Box<Spanned<Expr>>,
         field: String,
-        arrow: bool,               // true = ->, false = .
+        arrow: bool, // true = ->, false = .
     },
 
     // Cast: (Type)expr
@@ -98,14 +98,13 @@ pub enum Expr {
 
     // _Generic
     Generic {
-        controlling : Box<Spanned<Expr>>,
+        controlling: Box<Spanned<Expr>>,
         associated: Vec<GenericAssoc>,
     },
 
     // Comma operator: a, b  (lowest precedence)
     Comma(Box<Spanned<Expr>>, Box<Spanned<Expr>>),
 }
-
 
 // -----------------------------------------------------------------------------
 // TOP-LEVEL ITEMS
@@ -114,7 +113,7 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
     FunctionDef(FunctionDef),
-    Declaration(Declaration),                   // global variable / typedef / extern
+    Declaration(Declaration), // global variable / typedef / extern
 }
 
 #[derive(Debug, Clone, PartialEq)]

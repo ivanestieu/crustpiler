@@ -5,17 +5,29 @@ fn process_directory(directory_root: &str) {
     println!("directory_root:{}", directory_root);
     if std::path::Path::new(directory_root).is_file() {
         println!("Processing file: {:?}", directory_root);
-        criterion_to_rust::run(directory_root.to_string()).map_err(|e| eprintln!("{}", e)).ok();
+        crustpiler::run(directory_root.to_string())
+            .map_err(|e| {
+                eprintln!("{}", e);
+            })
+            .ok();
         return;
     }
     for entry in std::fs::read_dir(directory_root).expect("Failed to read directory.") {
         let entry = entry.expect("Failed to read directory entry.");
         let path = entry.path();
-        if path.is_file() && path.extension().map(|s| s == "c" || s == "h").unwrap_or(false) {
+        if path.is_file()
+            && path
+                .extension()
+                .map(|s| s == "c" || s == "h")
+                .unwrap_or(false)
+        {
             println!("Processing file: {:?}", path);
-            criterion_to_rust::run(path.to_str().unwrap().to_string()).map_err(|e| println!("{}", e)).ok();
-        }
-        else if path.is_dir() && !path.is_symlink() {
+            crustpiler::run(path.to_str().unwrap().to_string())
+                .map_err(|e| {
+                    eprintln!("{}", e);
+                })
+                .ok();
+        } else if path.is_dir() && !path.is_symlink() {
             process_directory(path.to_str().unwrap());
         }
     }
@@ -26,6 +38,7 @@ fn main() {
         eprintln!("Usage: criterion-to-rust <directory-root>");
         std::process::exit(1);
     }
-    std::env::args().skip(1).for_each(|arg| process_directory(&arg));
+    std::env::args()
+        .skip(1)
+        .for_each(|arg| process_directory(&arg));
 }
-

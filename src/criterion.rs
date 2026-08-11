@@ -1,2 +1,2 @@
-pub mod criterion;
 mod ast;
+pub mod criterion;

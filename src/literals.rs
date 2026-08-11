@@ -18,15 +18,15 @@ pub struct IntLit {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IntSuffix {
-    pub unsigned: bool,  // u / U
+    pub unsigned: bool, // u / U
     pub long: LongKind,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LongKind {
     None,
-    Long,       // l / L
-    LongLong,   // ll / LL
+    Long,     // l / L
+    LongLong, // ll / LL
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,23 +37,22 @@ pub struct FloatLit {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FloatSuffix {
-    Double,  // no suffix
-    Float,   // f / F
+    Double,     // no suffix
+    Float,      // f / F
     LongDouble, // l / L
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringLit {
-    pub value: String,         // decoded content
+    pub value: String, // decoded content
     pub prefix: StringPrefix,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StringPrefix {
-    None,    // "..."
-    Wide,    // L"..."
-    Utf8,    // u8"..."
-    Utf16,   // u"..."
-    Utf32,   // U"..."
+    None,  // "..."
+    Wide,  // L"..."
+    Utf8,  // u8"..."
+    Utf16, // u"..."
+    Utf32, // U"..."
 }
-

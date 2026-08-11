@@ -6,47 +6,61 @@ use crate::lexer::token::Token;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOp {
-    Minus,          // -
-    Plus,          // +
-    Not,          // !
-    BitNot,       // ~
-    Deref,        // *
-    AddrOf,       // &
-    PreInc,       // ++x
-    PreDec,       // --x
+    Minus,  // -
+    Plus,   // +
+    Not,    // !
+    BitNot, // ~
+    Deref,  // *
+    AddrOf, // &
+    PreInc, // ++x
+    PreDec, // --x
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PostfixOp {
-    PostInc,      // x++
-    PostDec,      // x--
+    PostInc, // x++
+    PostDec, // x--
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOp {
     // Arithmetic
-    Add, Sub, Mul, Div, Mod,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
     // Bitwise
-    BitAnd, BitOr, BitXor, Shl, Shr,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Shl,
+    Shr,
     // Comparison
-    Eq, Ne, Lt, Le, Gt, Ge,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
     // Logical
-    And, Or,
+    And,
+    Or,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AssignOp {
-    Assign,        // =
-    AddAssign,     // +=
-    SubAssign,     // -=
-    MulAssign,     // *=
-    DivAssign,     // /=
-    ModAssign,     // %=
-    BitAndAssign,  // &=
-    BitOrAssign,   // |=
-    BitXorAssign,  // ^=
-    ShlAssign,     // <<=
-    ShrAssign,     // >>=
+    Assign,       // =
+    AddAssign,    // +=
+    SubAssign,    // -=
+    MulAssign,    // *=
+    DivAssign,    // /=
+    ModAssign,    // %=
+    BitAndAssign, // &=
+    BitOrAssign,  // |=
+    BitXorAssign, // ^=
+    ShlAssign,    // <<=
+    ShrAssign,    // >>=
 }
 
 // Bridge token::Token -> ast::BinaryOp (kept as separate types for module decoupling)
@@ -55,7 +69,7 @@ pub trait AsBinaryOp {
 }
 impl AsBinaryOp for crate::lexer::token::Token {
     fn as_binary_op(&self) -> Result<BinaryOp, String> {
-         match self {
+        match self {
             // Multiplicative
             Token::Star => Ok(BinaryOp::Mul),
             Token::Slash => Ok(BinaryOp::Div),
@@ -98,19 +112,11 @@ impl TraitBinaryOp for BinaryOp {
             BinaryOp::BitOr => (5, 6),
             BinaryOp::BitXor => (7, 8),
             BinaryOp::BitAnd => (9, 10),
-            BinaryOp::Eq
-            | BinaryOp::Ne => (11, 12),
-            BinaryOp::Lt
-            | BinaryOp::Gt
-            | BinaryOp::Le
-            | BinaryOp::Ge => (13, 14),
-            BinaryOp::Shl
-            | BinaryOp::Shr => (15, 16),
-            BinaryOp::Add
-            | BinaryOp::Sub => (17, 18),
-            BinaryOp::Mul
-            | BinaryOp::Div
-            | BinaryOp::Mod => (19, 20),
+            BinaryOp::Eq | BinaryOp::Ne => (11, 12),
+            BinaryOp::Lt | BinaryOp::Gt | BinaryOp::Le | BinaryOp::Ge => (13, 14),
+            BinaryOp::Shl | BinaryOp::Shr => (15, 16),
+            BinaryOp::Add | BinaryOp::Sub => (17, 18),
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => (19, 20),
         }
     }
 }
@@ -157,5 +163,4 @@ impl AsUnaryOp for crate::lexer::token::Token {
             _ => Err(format!("Expected unary operator, found {:?}", self)),
         }
     }
-
 }

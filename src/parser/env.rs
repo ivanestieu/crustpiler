@@ -5,7 +5,7 @@ use std::collections::HashSet;
 /// "Foo" so a later `Foo x;` parses as a declaration, not an expression.
 #[derive(Default)]
 pub struct Env {
-    scopes : Vec<Scope>,
+    scopes: Vec<Scope>,
 }
 #[derive(Default, Clone)]
 struct Scope {
@@ -15,7 +15,9 @@ struct Scope {
 
 impl Env {
     pub fn new() -> Env {
-        Self { scopes: vec![Scope::default()] }
+        Self {
+            scopes: vec![Scope::default()],
+        }
     }
 
     pub fn push(&mut self) {
@@ -29,17 +31,17 @@ impl Env {
         }
     }
 
-    pub fn define_typedef(&mut self, name : String) -> () {
-        let current_scope =self.scopes.last_mut().unwrap();
+    pub fn define_typedef(&mut self, name: String) -> () {
+        let current_scope = self.scopes.last_mut().unwrap();
         current_scope.typedefs.insert(name);
     }
 
-    pub fn shadow(&mut self, name : String) -> () {
-        let current_scope =self.scopes.last_mut().unwrap();
+    pub fn shadow(&mut self, name: String) -> () {
+        let current_scope = self.scopes.last_mut().unwrap();
         current_scope.shadowed.insert(name);
     }
 
-    pub fn is_typedef(&self, name : &String) -> bool {
+    pub fn is_typedef(&self, name: &String) -> bool {
         for scope in self.scopes.iter().rev() {
             if scope.shadowed.contains(name) {
                 return false;
@@ -51,4 +53,3 @@ impl Env {
         false
     }
 }
-

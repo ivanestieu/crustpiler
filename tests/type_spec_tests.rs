@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod type_spec_tests {
-    use criterion_to_rust::ast::types::*;
-    use criterion_to_rust::ast::decl_specifiers::{TypeExprBuilder, TypeExprContext};
+    use crustpiler::ast::decl_specifiers::{TypeExprBuilder, TypeExprContext};
+    use crustpiler::ast::types::*;
 
     fn arith(spec: TypeSpec) -> ArithType {
         match spec {
@@ -16,12 +16,15 @@ pub mod type_spec_tests {
         builder.add_base(BaseType::Int).unwrap();
         let type_expr = builder.finish().unwrap();
         let a = arith(type_expr.type_spec);
-        assert_eq!(a, ArithType {
-            sign: None,
-            size: SizeSpec::None,
-            base: BaseType::Int,
-            complex: None,
-        });
+        assert_eq!(
+            a,
+            ArithType {
+                sign: None,
+                size: SizeSpec::None,
+                base: BaseType::Int,
+                complex: None,
+            }
+        );
     }
 
     #[test]

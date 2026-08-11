@@ -3,8 +3,11 @@
 // ONE big specifier structure, collected by ONE shared builder, with context
 // rules applied at add time.
 
-pub(crate) use crate::ast::declarations::{AlignmentSpecifier};
-use crate::ast::types::{ArithType, BaseType, Complex, FunctionSpecifier, Sign, SizeSpec, StorageClass, TypeQualifier, TypeSpec};
+pub(crate) use crate::ast::declarations::AlignmentSpecifier;
+use crate::ast::types::{
+    ArithType, BaseType, Complex, FunctionSpecifier, Sign, SizeSpec, StorageClass, TypeQualifier,
+    TypeSpec,
+};
 
 // -----------------------------------------------------------------------------
 // The unified structure every declaration-ish context produces.
@@ -12,7 +15,7 @@ use crate::ast::types::{ArithType, BaseType, Complex, FunctionSpecifier, Sign, S
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeExpr {
     pub storage: Option<StorageClass>,
-    pub thread_local: bool,               // _Thread_local, tracked separately so it can co-occur with static/extern
+    pub thread_local: bool, // _Thread_local, tracked separately so it can co-occur with static/extern
     pub type_spec: TypeSpec,
     pub qualifiers: Vec<TypeQualifier>,
     pub function_specifiers: Vec<FunctionSpecifier>,
@@ -46,23 +49,25 @@ pub enum TypeExprContext {
 }
 
 impl TypeExprContext {
-    fn validate_storage_class(&self, &sc : &StorageClass) -> Result<(), String> {
+    fn validate_storage_class(&self, &sc: &StorageClass) -> Result<(), String> {
         match self {
-            TypeExprContext::StructUnionField =>
-                 Err("a storage-class specifier is not allowed on a struct/union member".into()),
-            TypeExprContext::TypeName =>
-                 Err("a storage-class specifier is not allowed in a type name".into()),
-            TypeExprContext::Parameter =>
-                match sc {
-                    StorageClass::ThreadLocal =>
-                        Err("`_Thread_local` is not allowed on a parameter".into()),
-                    StorageClass::Register => Ok(()),
-                    _ => Err(format!(
-                        "only `register` is allowed as a storage class on a parameter, found `{:?}`",
-                        sc
-                        ))
+            TypeExprContext::StructUnionField => {
+                Err("a storage-class specifier is not allowed on a struct/union member".into())
+            }
+            TypeExprContext::TypeName => {
+                Err("a storage-class specifier is not allowed in a type name".into())
+            }
+            TypeExprContext::Parameter => match sc {
+                StorageClass::ThreadLocal => {
+                    Err("`_Thread_local` is not allowed on a parameter".into())
                 }
-            _ => Ok(())
+                StorageClass::Register => Ok(()),
+                _ => Err(format!(
+                    "only `register` is allowed as a storage class on a parameter, found `{:?}`",
+                    sc
+                )),
+            },
+            _ => Ok(()),
         }
     }
 
@@ -82,7 +87,6 @@ impl TypeExprContext {
             _ => Ok(()),
         }
     }
-
 }
 
 // -----------------------------------------------------------------------------
@@ -115,7 +119,12 @@ pub struct TypeExprBuilder {
 }
 
 impl TypeExprBuilder {
-    pub fn new(context: TypeExprContext) -> Self { TypeExprBuilder { context, .. Default::default() } }
+    pub fn new(context: TypeExprContext) -> Self {
+        TypeExprBuilder {
+            context,
+            ..Default::default()
+        }
+    }
 
     // ── storage class ──────────────────────────────────────────────────────
     pub fn add_storage(&mut self, sc: StorageClass) -> Result<(), String> {
@@ -128,7 +137,10 @@ impl TypeExprBuilder {
             return Ok(());
         }
         match &self.storage {
-            None => { self.storage = Some(sc); Ok(()) }
+            None => {
+                self.storage = Some(sc);
+                Ok(())
+            }
             Some(existing) => Err(format!(
                 "cannot combine storage-class specifiers `{:?}` and `{:?}`",
                 existing, sc
@@ -142,46 +154,60 @@ impl TypeExprBuilder {
         match &self.sign {
             Some(existing) if *existing != s => Err("conflicting `signed` and `unsigned`".into()),
             Some(_) => Err("duplicate sign specifier".into()),
-            None => { self.sign = Some(s); Ok(()) }
+            None => {
+                self.sign = Some(s);
+                Ok(())
+            }
         }
     }
     pub fn add_short(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`short`")?;
-        self.short_count += 1; Ok(())
+        self.short_count += 1;
+        Ok(())
     }
     pub fn add_long(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`long`")?;
-        self.long_count += 1; Ok(())
+        self.long_count += 1;
+        Ok(())
     }
     pub fn add_base(&mut self, b: BaseType) -> Result<(), String> {
         self.reject_if_tagged("a type specifier")?;
         match &self.base {
             Some(existing) if *existing != b => Err("conflicting base type specifiers".into()),
             Some(_) => Err("duplicate base type specifier".into()),
-            None => { self.base = Some(b); Ok(()) }
+            None => {
+                self.base = Some(b);
+                Ok(())
+            }
         }
     }
     pub fn add_complex(&mut self, c: Complex) -> Result<(), String> {
         self.reject_if_tagged("`_Complex`/`_Imaginary`")?;
         match &self.complex {
             Some(_) => Err("duplicate `_Complex`/`_Imaginary`".into()),
-            None => { self.complex = Some(c); Ok(()) }
+            None => {
+                self.complex = Some(c);
+                Ok(())
+            }
         }
     }
     pub fn set_void(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`void`")?;
-        self.saw_void = true; Ok(())
+        self.saw_void = true;
+        Ok(())
     }
     pub fn set_bool(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`_Bool`")?;
-        self.saw_bool = true; Ok(())
+        self.saw_bool = true;
+        Ok(())
     }
 
     // ── tagged / named type specifier ──────────────────────────────────────
     pub fn set_tagged_or_named(&mut self, spec: TypeSpec) -> Result<(), String> {
         if self.has_any_arith_axis() {
             return Err("cannot combine a struct/union/enum/typedef name with \
-                        arithmetic type specifiers".into());
+                        arithmetic type specifiers"
+                .into());
         }
         if self.tagged_or_named.is_some() {
             return Err("more than one type specifier".into());
@@ -192,29 +218,45 @@ impl TypeExprBuilder {
 
     // ── qualifiers / fn-spec / alignment ───────────────────────────────────
     pub fn add_qualifier(&mut self, q: TypeQualifier) {
-        if !self.qualifiers.contains(&q) { self.qualifiers.push(q); }
+        if !self.qualifiers.contains(&q) {
+            self.qualifiers.push(q);
+        }
     }
     pub fn add_function_specifier(&mut self, fs: FunctionSpecifier) -> Result<(), String> {
         self.context.validate_function_specifiers()?;
-        if !self.function_specifiers.contains(&fs) { self.function_specifiers.push(fs); }
+        if !self.function_specifiers.contains(&fs) {
+            self.function_specifiers.push(fs);
+        }
         Ok(())
     }
     pub fn set_alignment(&mut self, a: AlignmentSpecifier) -> Result<(), String> {
         self.context.validate_alignment()?;
-        if self.alignment.is_some() { return Err("multiple `_Alignas` specifiers".into()); }
-        self.alignment = Some(a); Ok(())
+        if self.alignment.is_some() {
+            return Err("multiple `_Alignas` specifiers".into());
+        }
+        self.alignment = Some(a);
+        Ok(())
     }
 
     // ── helpers ────────────────────────────────────────────────────────────
     fn has_any_arith_axis(&self) -> bool {
-        self.sign.is_some() || self.short_count > 0 || self.long_count > 0
-            || self.base.is_some() || self.complex.is_some()
-            || self.saw_void || self.saw_bool
+        self.sign.is_some()
+            || self.short_count > 0
+            || self.long_count > 0
+            || self.base.is_some()
+            || self.complex.is_some()
+            || self.saw_void
+            || self.saw_bool
     }
     fn reject_if_tagged(&self, what: &str) -> Result<(), String> {
         if self.tagged_or_named.is_some() {
-            Err(format!("cannot combine {} with a struct/union/enum/typedef name", what))
-        } else { Ok(()) }
+            Err(format!(
+                "cannot combine {} with a struct/union/enum/typedef name",
+                what
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     // ── finish: resolve type ─────────────────────
@@ -283,9 +325,16 @@ impl TypeExprBuilder {
     }
 
     fn has_other_than(&self, checking_void: bool) -> bool {
-        let arith = self.sign.is_some() || self.short_count > 0 || self.long_count > 0
-            || self.base.is_some() || self.complex.is_some();
-        if checking_void { arith || self.saw_bool } else { arith || self.saw_void }
+        let arith = self.sign.is_some()
+            || self.short_count > 0
+            || self.long_count > 0
+            || self.base.is_some()
+            || self.complex.is_some();
+        if checking_void {
+            arith || self.saw_bool
+        } else {
+            arith || self.saw_void
+        }
     }
 }
 
@@ -305,8 +354,12 @@ fn resolve_size(short_count: u32, long_count: u32) -> Result<SizeSpec, String> {
 
 fn validate_base_size(base: &BaseType, size: &SizeSpec) -> Result<(), String> {
     match base {
-        BaseType::Char if *size != SizeSpec::None => Err("`char` cannot be `short` or `long`".into()),
-        BaseType::Float if *size != SizeSpec::None => Err("`float` cannot be `short` or `long`".into()),
+        BaseType::Char if *size != SizeSpec::None => {
+            Err("`char` cannot be `short` or `long`".into())
+        }
+        BaseType::Float if *size != SizeSpec::None => {
+            Err("`float` cannot be `short` or `long`".into())
+        }
         BaseType::Double => match size {
             SizeSpec::None | SizeSpec::Long => Ok(()),
             _ => Err("only `long double` is valid among sized doubles".into()),
@@ -317,16 +370,18 @@ fn validate_base_size(base: &BaseType, size: &SizeSpec) -> Result<(), String> {
 
 fn validate_base_sign(base: &BaseType, sign: &Option<Sign>) -> Result<(), String> {
     match base {
-        BaseType::Float | BaseType::Double if sign.is_some() =>
-            Err("floating types cannot be `signed` or `unsigned`".into()),
+        BaseType::Float | BaseType::Double if sign.is_some() => {
+            Err("floating types cannot be `signed` or `unsigned`".into())
+        }
         _ => Ok(()),
     }
 }
 
 fn validate_base_complex(base: &BaseType, complex: &Option<Complex>) -> Result<(), String> {
     match (base, complex) {
-        (BaseType::Int | BaseType::Char, Some(_)) =>
-            Err("`_Complex`/`_Imaginary` require a floating base type".into()),
+        (BaseType::Int | BaseType::Char, Some(_)) => {
+            Err("`_Complex`/`_Imaginary` require a floating base type".into())
+        }
         _ => Ok(()),
     }
 }

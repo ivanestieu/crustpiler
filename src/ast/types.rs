@@ -17,7 +17,10 @@ impl AsTypeQualifier for crate::lexer::token::Token {
             Token::KwConst => Ok(TypeQualifier::Const),
             Token::KwVolatile => Ok(TypeQualifier::Volatile),
             Token::KwRestrict => Ok(TypeQualifier::Restrict),
-            Token::KwAtomic => Err("Atomic is ambiguous and cannot be resolved as qualifier by this function".to_string()),
+            Token::KwAtomic => Err(
+                "Atomic is ambiguous and cannot be resolved as qualifier by this function"
+                    .to_string(),
+            ),
             _ => Err(format!("Expected type qualifier, found {:?}", self)),
         }
     }
@@ -40,7 +43,7 @@ pub enum TypeSpec {
 
     // Non-arithmetic primitives
     Void,
-    Bool,               // _Bool / stdbool.h bool
+    Bool, // _Bool / stdbool.h bool
 
     // Struct / union
     Struct(StructOrUnion),
@@ -50,7 +53,7 @@ pub enum TypeSpec {
     Enum(EnumSpec),
 
     // Named type (typedef or tag alias)
-    Named(String),      // e.g. size_t, uint8_t, MyStruct
+    Named(String), // e.g. size_t, uint8_t, MyStruct
 
     // Atomic
     Atomic(Box<TypeName>), // eg. _Atomic(type-name)
@@ -60,32 +63,32 @@ pub enum TypeSpec {
 /// `int`, `unsigned`, `long long int`, `unsigned char`, `long double` all fit.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArithType {
-    pub sign: Option<Sign>,   // None = unspecified (int→signed; char→impl-defined)
-    pub size: SizeSpec,       // short / none / long / long long
-    pub base: BaseType,       // int / char / float / double
-    pub complex : Option<Complex> // _Complex / _Imaginary
+    pub sign: Option<Sign>, // None = unspecified (int→signed; char→impl-defined)
+    pub size: SizeSpec,     // short / none / long / long long
+    pub base: BaseType,     // int / char / float / double
+    pub complex: Option<Complex>, // _Complex / _Imaginary
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Sign {
-    Signed,    // signed
-    Unsigned,  // unsigned
+    Signed,   // signed
+    Unsigned, // unsigned
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SizeSpec {
-    Short,     // short
-    None,      // (no size word)
-    Long,      // long
-    LongLong,  // long long
+    Short,    // short
+    None,     // (no size word)
+    Long,     // long
+    LongLong, // long long
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BaseType {
-    Int,       // also the default base when only sign/size are written
+    Int, // also the default base when only sign/size are written
     Char,
     Float,
-    Double,    // `long double` = {size: Long, base: Double}
+    Double, // `long double` = {size: Long, base: Double}
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -96,27 +99,42 @@ pub enum Complex {
 impl TypeSpec {
     pub fn int() -> Self {
         TypeSpec::Arithmetic(ArithType {
-            sign: None, size: SizeSpec::None, base: BaseType::Int, complex: None,
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Int,
+            complex: None,
         })
     }
     pub fn uint() -> Self {
         TypeSpec::Arithmetic(ArithType {
-            sign: Some(Sign::Unsigned), size: SizeSpec::None, base: BaseType::Int, complex: None,
+            sign: Some(Sign::Unsigned),
+            size: SizeSpec::None,
+            base: BaseType::Int,
+            complex: None,
         })
     }
     pub fn char_() -> Self {
         TypeSpec::Arithmetic(ArithType {
-            sign: None, size: SizeSpec::None, base: BaseType::Char, complex: None,
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Char,
+            complex: None,
         })
     }
     pub fn double() -> Self {
         TypeSpec::Arithmetic(ArithType {
-            sign: None, size: SizeSpec::None, base: BaseType::Double, complex: None,
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Double,
+            complex: None,
         })
     }
     pub fn float_() -> Self {
         TypeSpec::Arithmetic(ArithType {
-            sign: None, size: SizeSpec::None, base: BaseType::Float, complex: None,
+            sign: None,
+            size: SizeSpec::None,
+            base: BaseType::Float,
+            complex: None,
         })
     }
 }
@@ -134,7 +152,10 @@ impl ArithType {
             SizeSpec::Short => parts.push("short"),
             SizeSpec::None => {}
             SizeSpec::Long => parts.push("long"),
-            SizeSpec::LongLong => { parts.push("long"); parts.push("long"); }
+            SizeSpec::LongLong => {
+                parts.push("long");
+                parts.push("long");
+            }
         }
         parts.push(match self.base {
             BaseType::Int => "int",
@@ -153,7 +174,12 @@ impl ArithType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum TypeQualifier { Const, Volatile, Restrict, Atomic }
+pub enum TypeQualifier {
+    Const,
+    Volatile,
+    Restrict,
+    Atomic,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum StorageClass {
@@ -183,7 +209,6 @@ impl AsStorageClass for crate::lexer::token::Token {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum FunctionSpecifier {
     Inline,
@@ -208,5 +233,3 @@ pub struct TypeName {
     pub type_expr: TypeExpr,
     pub derived: Declarator,
 }
-
-

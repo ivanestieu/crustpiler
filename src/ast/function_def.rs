@@ -10,7 +10,7 @@ use crate::ast::statements::BlockItem;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionDef {
     pub ret: TypeExpr,
-    pub declarator: Declarator,            // encodes name + params
+    pub declarator: Declarator, // encodes name + params
     pub old_style_params: Vec<Decl>,
     pub body: Vec<BlockItem>,
 }

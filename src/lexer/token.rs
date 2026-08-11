@@ -6,11 +6,11 @@
 // The #[logos(skip ...)] line discards whitespace between tokens.
 // =============================================================================
 
-use crate::lexer::errors::LexError;
-use crate::lexer::string::lex_string_lit;
-use crate::lexer::float::{ lex_hex_float, lex_std_float};
-use crate::lexer::int::lex_int;
 use crate::lexer::char::lex_char_lit;
+use crate::lexer::errors::LexError;
+use crate::lexer::float::{lex_hex_float, lex_std_float};
+use crate::lexer::int::lex_int;
+use crate::lexer::string::lex_string_lit;
 use crate::literals::{FloatLit, IntLit, StringLit};
 use logos::Logos;
 
@@ -273,7 +273,10 @@ pub struct Span {
 
 impl From<std::ops::Range<usize>> for Span {
     fn from(r: std::ops::Range<usize>) -> Self {
-        Span { start: r.start, end: r.end }
+        Span {
+            start: r.start,
+            end: r.end,
+        }
     }
 }
 
@@ -285,10 +288,13 @@ pub struct SpannedToken {
 
 /// Run the Logos lexer over `src`, collecting tokens or the first error.
 pub fn lex(src: &str) -> Result<Vec<SpannedToken>, LexError> {
-    let mut out : Vec<SpannedToken> = Vec::new();
+    let mut out: Vec<SpannedToken> = Vec::new();
     for (result, range) in Token::lexer(src).spanned() {
         match result {
-            Ok(token) => out.push(SpannedToken { token, span: range.into() }),
+            Ok(token) => out.push(SpannedToken {
+                token,
+                span: range.into(),
+            }),
             Err(mut e) => {
                 if e.span.is_none() {
                     e.span = Some(range);

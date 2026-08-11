@@ -4,12 +4,14 @@
 //   int x = 1;   →   let x: i32 = 1;
 // =============================================================================
 
-use itertools::Itertools;
 use crate::ast::ast::*;
-use crate::ast::declarations::{Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer};
+use crate::ast::declarations::{
+    Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer,
+};
+use crate::ast::declarator::Declarator;
 use crate::ast::operators::{AssignOp, BinaryOp, PostfixOp, UnaryOp};
 use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeExpr, TypeName, TypeSpec};
-use crate::ast::declarator::Declarator;
+use itertools::Itertools;
 
 pub trait Output {
     fn as_c_repr(&self) -> String;
@@ -27,7 +29,8 @@ impl Output for UnaryOp {
             UnaryOp::AddrOf => "&",
             UnaryOp::PreInc => "++",
             UnaryOp::PreDec => "--",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {
@@ -40,7 +43,8 @@ impl Output for UnaryOp {
             UnaryOp::AddrOf => "&",
             UnaryOp::PreInc => "/* Rust has no prefix increment operator */",
             UnaryOp::PreDec => "/* Rust has no prefix decrement operator */",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -65,7 +69,8 @@ impl Output for BinaryOp {
             BinaryOp::Ge => ">=",
             BinaryOp::And => "&&",
             BinaryOp::Or => "||",
-        }.to_string()
+        }
+        .to_string()
     }
     fn as_rust_repr(&self) -> String {
         self.as_c_repr()
@@ -77,7 +82,8 @@ impl Output for PostfixOp {
         match self {
             PostfixOp::PostInc => "++",
             PostfixOp::PostDec => "--",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {
@@ -99,7 +105,8 @@ impl Output for AssignOp {
             AssignOp::BitXorAssign => "^=",
             AssignOp::ShlAssign => "<<=",
             AssignOp::ShrAssign => ">>=",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {
@@ -126,10 +133,13 @@ impl Output for InitItem {
     }
 
     fn as_rust_repr(&self) -> String {
-        format!("{} = {}", self.designators.iter().map(|d| d.as_rust_repr()).join(""), self.value.as_rust_repr())
+        format!(
+            "{} = {}",
+            self.designators.iter().map(|d| d.as_rust_repr()).join(""),
+            self.value.as_rust_repr()
+        )
     }
 }
-
 
 impl Output for Initializer {
     fn as_c_repr(&self) -> String {
@@ -139,58 +149,72 @@ impl Output for Initializer {
     fn as_rust_repr(&self) -> String {
         match self {
             Initializer::Expr(e) => e.as_rust_repr(),
-            Initializer::List(list) => format!("{{{}}}", list.iter().map(|init| init.as_rust_repr()).join(", "))
+            Initializer::List(list) => format!(
+                "{{{}}}",
+                list.iter().map(|init| init.as_rust_repr()).join(", ")
+            ),
         }
     }
 }
 
 impl Output for Decl {
     fn as_c_repr(&self) -> String {
-        format!("{} {}",
-                self.specifiers.as_c_repr(),
-                self.declarators
-                    .iter()
-                    .map(|d| d.as_c_repr())
-                    .collect::<Vec<_>>()
-                    .join(", "))
+        format!(
+            "{} {}",
+            self.specifiers.as_c_repr(),
+            self.declarators
+                .iter()
+                .map(|d| d.as_c_repr())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
     fn as_rust_repr(&self) -> String {
         let spec = self.specifiers.as_rust_repr();
         let mut decl: Vec<String> = vec![];
-        let print_vec = |v : &Vec<String>| {
-            format!("{}",
-                    {
-                        if v.len() == 1 {
-                            format!("{}", v[0])
-                        } else {
-                            format!("({})", v.join(", "))
-                        }
-                    }
-            )
+        let print_vec = |v: &Vec<String>| {
+            format!("{}", {
+                if v.len() == 1 {
+                    format!("{}", v[0])
+                } else {
+                    format!("({})", v.join(", "))
+                }
+            })
         };
         let mut declarators_iter = self.declarators.iter().peekable();
         while declarators_iter.peek().is_some() {
             let mut declarators: Vec<String> = vec![];
-            let mut specs : Vec<String> = vec![];
-            declarators_iter.peeking_take_while(|d| d.init.is_none())
+            let mut specs: Vec<String> = vec![];
+            declarators_iter
+                .peeking_take_while(|d| d.init.is_none())
                 .for_each(|d| {
                     declarators.push(d.declarator.ident().unwrap().to_string());
                     specs.push(spec.clone());
                 });
             if !declarators.is_empty() {
-                decl.push(format!("let {} : {};", print_vec(&declarators), print_vec(&specs)));
+                decl.push(format!(
+                    "let {} : {};",
+                    print_vec(&declarators),
+                    print_vec(&specs)
+                ));
             }
             specs.clear();
             declarators.clear();
-            let mut inits : Vec<String> = vec![];
-            declarators_iter.peeking_take_while(|d| d.init.is_some())
+            let mut inits: Vec<String> = vec![];
+            declarators_iter
+                .peeking_take_while(|d| d.init.is_some())
                 .for_each(|d| {
                     declarators.push(d.declarator.ident().unwrap().to_string());
                     specs.push(spec.clone());
                     inits.push(d.init.as_ref().unwrap().as_rust_repr());
                 });
             if !declarators.is_empty() {
-                decl.push(format!("let {} : {} = {};", print_vec(&declarators), print_vec(&specs), print_vec(&inits)));
+                decl.push(format!(
+                    "let {} : {} = {};",
+                    print_vec(&declarators),
+                    print_vec(&specs),
+                    print_vec(&inits)
+                ));
             }
         }
         decl.join("\n")
@@ -224,20 +248,74 @@ impl Output for ArithType {
 
     fn as_rust_repr(&self) -> String {
         match self {
-            ArithType { base: BaseType::Int, sign: Some(Sign::Unsigned), size: SizeSpec::Short, .. } => "u16",
-            ArithType { base: BaseType::Int, sign: Some(Sign::Unsigned), size: SizeSpec::None, .. } => "u32",
-            ArithType { base: BaseType::Int, sign: Some(Sign::Unsigned), size: SizeSpec::Long, .. } => "u64",
-            ArithType { base: BaseType::Int, sign: Some(Sign::Unsigned), size: SizeSpec::LongLong, .. } => "u128",
-            ArithType { base: BaseType::Int, size: SizeSpec::Short, .. } => "i16",
-            ArithType { base: BaseType::Int, size: SizeSpec::None, .. } => "i32",
-            ArithType { base: BaseType::Int, size: SizeSpec::Long, .. } => "i64",
-            ArithType { base: BaseType::Int, size: SizeSpec::LongLong, .. } => "i128",
-            ArithType { base: BaseType::Float, .. } => "f32",
-            ArithType { base: BaseType::Double, size: SizeSpec::Long, .. } => "/* f80 (long double) isn't defined in rust */ f64",
-            ArithType { base: BaseType::Double, .. } => "f64",
-            ArithType { base: BaseType::Char, sign: Some(Sign::Unsigned), .. } => "/* uchar (unsigned char) isn't defined in rust */ u32",
-            ArithType { base: BaseType::Char, .. } => "char",
-        }.to_string()
+            ArithType {
+                base: BaseType::Int,
+                sign: Some(Sign::Unsigned),
+                size: SizeSpec::Short,
+                ..
+            } => "u16",
+            ArithType {
+                base: BaseType::Int,
+                sign: Some(Sign::Unsigned),
+                size: SizeSpec::None,
+                ..
+            } => "u32",
+            ArithType {
+                base: BaseType::Int,
+                sign: Some(Sign::Unsigned),
+                size: SizeSpec::Long,
+                ..
+            } => "u64",
+            ArithType {
+                base: BaseType::Int,
+                sign: Some(Sign::Unsigned),
+                size: SizeSpec::LongLong,
+                ..
+            } => "u128",
+            ArithType {
+                base: BaseType::Int,
+                size: SizeSpec::Short,
+                ..
+            } => "i16",
+            ArithType {
+                base: BaseType::Int,
+                size: SizeSpec::None,
+                ..
+            } => "i32",
+            ArithType {
+                base: BaseType::Int,
+                size: SizeSpec::Long,
+                ..
+            } => "i64",
+            ArithType {
+                base: BaseType::Int,
+                size: SizeSpec::LongLong,
+                ..
+            } => "i128",
+            ArithType {
+                base: BaseType::Float,
+                ..
+            } => "f32",
+            ArithType {
+                base: BaseType::Double,
+                size: SizeSpec::Long,
+                ..
+            } => "/* f80 (long double) isn't defined in rust */ f64",
+            ArithType {
+                base: BaseType::Double,
+                ..
+            } => "f64",
+            ArithType {
+                base: BaseType::Char,
+                sign: Some(Sign::Unsigned),
+                ..
+            } => "/* uchar (unsigned char) isn't defined in rust */ u32",
+            ArithType {
+                base: BaseType::Char,
+                ..
+            } => "char",
+        }
+        .to_string()
     }
 }
 
@@ -300,7 +378,10 @@ fn wrap_declarator_rust(d: &Declarator, base: String) -> String {
         }
         Declarator::Function { inner, .. } => {
             // function type in a type-name → a fn pointer; best-effort
-            format!("fn() -> {} /* fn type */", wrap_declarator_rust(inner, base))
+            format!(
+                "fn() -> {} /* fn type */",
+                wrap_declarator_rust(inner, base)
+            )
         }
     }
 }
@@ -316,7 +397,6 @@ impl Output for TypeName {
         wrap_declarator_rust(&self.derived, base)
     }
 }
-
 
 impl Output for Expr {
     fn as_c_repr(&self) -> String {
@@ -337,52 +417,63 @@ impl Output for Expr {
 
             // Compound literal: (Type){init}
             // Unary prefix
-            Expr::UnaryOp {
-                op,
-                operand,
-            } => format!("{}{}", op.as_rust_repr(), &operand.node.as_rust_repr()),
+            Expr::UnaryOp { op, operand } => {
+                format!("{}{}", op.as_rust_repr(), &operand.node.as_rust_repr())
+            }
 
             // Unary postfix — kept separate because precedence/associativity differ
-            Expr::PostfixOp {
-                op,
-                operand,
-            } => format!("{}{}", &operand.node.as_rust_repr(), op.as_rust_repr()),
+            Expr::PostfixOp { op, operand } => {
+                format!("{}{}", &operand.node.as_rust_repr(), op.as_rust_repr())
+            }
 
             // Binary
-            Expr::BinaryOp {
-                lhs,
-                op,
-                rhs
-            } => format!("{} {} {}", &lhs.node.as_rust_repr(), op.as_rust_repr(), &rhs.node.as_rust_repr()),
+            Expr::BinaryOp { lhs, op, rhs } => format!(
+                "{} {} {}",
+                &lhs.node.as_rust_repr(),
+                op.as_rust_repr(),
+                &rhs.node.as_rust_repr()
+            ),
             // Assignment (right-associative, lower precedence than most binary ops)
-            Expr::Assign { op, lhs, rhs } => format!("{} {} {}", &lhs.node.as_rust_repr(), op.as_rust_repr(), &rhs.node.as_rust_repr()),
+            Expr::Assign { op, lhs, rhs } => format!(
+                "{} {} {}",
+                &lhs.node.as_rust_repr(),
+                op.as_rust_repr(),
+                &rhs.node.as_rust_repr()
+            ),
             // Ternary
             // Function call
             // Subscript: array[index]
             // Member access: expr.field  or  expr->field
             // Cast: (Type)expr
-            Expr::Cast { type_name, expr } => format!("({} as {})", &expr.node.as_rust_repr(), type_name.as_rust_repr()),
+            Expr::Cast { type_name, expr } => format!(
+                "({} as {})",
+                &expr.node.as_rust_repr(),
+                type_name.as_rust_repr()
+            ),
 
             // sizeof
             Expr::SizeofExpr(e) => format!("std::mem::size_of_val(&{})", &e.node.as_rust_repr()),
             // _Alignof
             // _Generic
             // Comma operator: a, b  (lowest precedence)
-            Expr::Comma(left, right) => format!("{}, {}", &left.node.as_rust_repr(), &right.node.as_rust_repr()),
+            Expr::Comma(left, right) => format!(
+                "{}, {}",
+                &left.node.as_rust_repr(),
+                &right.node.as_rust_repr()
+            ),
             _ => "/* expr */".to_string(), // Placeholder for other expressions
         }
     }
 }
 pub fn output_translation_unit(p0: &Vec<Item>) -> String {
-    p0.iter().filter_map(|item| {
-        match item {
-            Item::Declaration(decl) => {
-                match decl {
-                    Declaration::Normal(d) => Some(d.node.as_rust_repr()),
-                    Declaration::StaticAssert(_) => None,
-                }
-            }
+    p0.iter()
+        .filter_map(|item| match item {
+            Item::Declaration(decl) => match decl {
+                Declaration::Normal(d) => Some(d.node.as_rust_repr()),
+                Declaration::StaticAssert(_) => None,
+            },
             _ => None,
-        }
-    }).collect::<Vec<_>>().join("\n")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }

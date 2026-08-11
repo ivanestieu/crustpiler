@@ -2,11 +2,11 @@ pub mod utils;
 
 #[cfg(test)]
 pub mod test_valid_int {
-    use criterion_to_rust::lexer::token::*;
-    use parameterized::parameterized;
-    use criterion_to_rust::literals::{IntBase, IntLit, IntSuffix, LongKind};
     use super::assert_all_eq;
     use super::utils::*;
+    use crustpiler::lexer::token::*;
+    use crustpiler::literals::{IntBase, IntLit, IntSuffix, LongKind};
+    use parameterized::parameterized;
 
     #[parameterized(base = {
         "0", "00", "0x0", "0X0"
@@ -21,13 +21,22 @@ pub mod test_valid_int {
         "hex_lower",
         "hex_upper"
     })]
-    fn test_zero(base : &str, int_base : IntBase, name : &str) {
+    fn test_zero(base: &str, int_base: IntBase, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::Int(IntLit {
-            value: 0,
-            base : int_base,
-            suffix: IntSuffix { unsigned: false, long: LongKind::None },
-        }), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::Int(IntLit {
+                value: 0,
+                base: int_base,
+                suffix: IntSuffix {
+                    unsigned: false,
+                    long: LongKind::None
+                },
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 
     #[parameterized(base = {
@@ -54,13 +63,22 @@ pub mod test_valid_int {
         "hex_lower_2",
         "hex_upper_1"
     })]
-    fn test_positive(base : &str, int_base : IntBase, int_value : u64, name : &str) {
+    fn test_positive(base: &str, int_base: IntBase, int_value: u64, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::Int(IntLit {
-            value: int_value,
-            base: int_base,
-            suffix: IntSuffix { unsigned: false, long: LongKind::None },
-        }), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::Int(IntLit {
+                value: int_value,
+                base: int_base,
+                suffix: IntSuffix {
+                    unsigned: false,
+                    long: LongKind::None
+                },
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 
     #[parameterized(base = {
@@ -87,14 +105,23 @@ pub mod test_valid_int {
         "hex_lower_2",
         "hex_upper_1"
     })]
-    fn test_u_suffix(base : &str, int_base : IntBase, int_value : u64, name : &str) {
+    fn test_u_suffix(base: &str, int_base: IntBase, int_value: u64, name: &str) {
         let sources = build_int_suffix(base, true, LongKind::None);
         let tokens = lex_tokens(&sources);
-        assert_eq!(tokens[0], Token::Int(IntLit {
-            value: int_value,
-            base: int_base,
-            suffix: IntSuffix { unsigned: true, long: LongKind::None },
-        }), "Test {} failed for source: {}", name, sources[0]);
+        assert_eq!(
+            tokens[0],
+            Token::Int(IntLit {
+                value: int_value,
+                base: int_base,
+                suffix: IntSuffix {
+                    unsigned: true,
+                    long: LongKind::None
+                },
+            }),
+            "Test {} failed for source: {}",
+            name,
+            sources[0]
+        );
         assert_all_eq!(&tokens);
     }
 
@@ -124,11 +151,17 @@ pub mod test_valid_int {
     })]
     fn test_l_suffix() {
         let tokens = build_int_suffix("100", false, LongKind::Long);
-        assert_eq!(lex_token(&tokens[0]), Token::Int(IntLit {
-            value: 100,
-            base: IntBase::Decimal,
-            suffix: IntSuffix { unsigned: false, long: LongKind::Long },
-        }));
+        assert_eq!(
+            lex_token(&tokens[0]),
+            Token::Int(IntLit {
+                value: 100,
+                base: IntBase::Decimal,
+                suffix: IntSuffix {
+                    unsigned: false,
+                    long: LongKind::Long
+                },
+            })
+        );
         assert_all_eq!(lex_tokens(&tokens));
     }
 
@@ -158,11 +191,17 @@ pub mod test_valid_int {
     })]
     fn test_ll_suffix() {
         let tokens = build_int_suffix("100", false, LongKind::LongLong);
-        assert_eq!(lex_token(&tokens[0]), Token::Int(IntLit {
-            value: 100,
-            base: IntBase::Decimal,
-            suffix: IntSuffix { unsigned: false, long: LongKind::LongLong },
-        }));
+        assert_eq!(
+            lex_token(&tokens[0]),
+            Token::Int(IntLit {
+                value: 100,
+                base: IntBase::Decimal,
+                suffix: IntSuffix {
+                    unsigned: false,
+                    long: LongKind::LongLong
+                },
+            })
+        );
         assert_all_eq!(lex_tokens(&tokens));
     }
 
@@ -192,11 +231,17 @@ pub mod test_valid_int {
     })]
     fn test_ul_suffix() {
         let tokens = build_int_suffix("100", true, LongKind::Long);
-        assert_eq!(lex_token(&tokens[0]), Token::Int(IntLit {
-            value: 100,
-            base: IntBase::Decimal,
-            suffix: IntSuffix { unsigned: true, long: LongKind::Long },
-        }));
+        assert_eq!(
+            lex_token(&tokens[0]),
+            Token::Int(IntLit {
+                value: 100,
+                base: IntBase::Decimal,
+                suffix: IntSuffix {
+                    unsigned: true,
+                    long: LongKind::Long
+                },
+            })
+        );
         assert_all_eq!(lex_tokens(&tokens));
     }
 
@@ -226,20 +271,26 @@ pub mod test_valid_int {
     })]
     fn test_ull_suffix() {
         let tokens = build_int_suffix("100", true, LongKind::LongLong);
-        assert_eq!(lex_token(&tokens[0]), Token::Int(IntLit {
-            value: 100,
-            base: IntBase::Decimal,
-            suffix: IntSuffix { unsigned: true, long: LongKind::LongLong },
-        }));
+        assert_eq!(
+            lex_token(&tokens[0]),
+            Token::Int(IntLit {
+                value: 100,
+                base: IntBase::Decimal,
+                suffix: IntSuffix {
+                    unsigned: true,
+                    long: LongKind::LongLong
+                },
+            })
+        );
         assert_all_eq!(lex_tokens(&tokens));
     }
 }
 
 #[cfg(test)]
 pub mod test_valid_char {
-    use criterion_to_rust::lexer::token::*;
-    use parameterized::parameterized;
     use crate::utils::lex_token;
+    use crustpiler::lexer::token::*;
+    use parameterized::parameterized;
 
     #[parameterized{base = {
         "'a'", "'B'", "'\\n'", "'\\t'", "'\\''", "'\\\\'", "'\\x41'", "'\\u1F60'",
@@ -254,19 +305,23 @@ pub mod test_valid_char {
         "unicode_1F600", "null", "carriage_return", "vertical_tab", "form_feed", "backspace", "alert",
         "delete", "null", "max_ascii", "unicode_10FFFF", "octal_two_digit", "octal_three_digit"
     }}]
-    fn tests(base : &str, char_value : char, name : &str) {
+    fn tests(base: &str, char_value: char, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::CharLit(
-            char_value,
-        ), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::CharLit(char_value,),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 }
 
 #[cfg(test)]
 pub mod test_invalid_char {
+    use crustpiler::lexer::errors::{LexError, LexErrorKind};
+    use crustpiler::lexer::token::lex;
     use parameterized::parameterized;
-    use criterion_to_rust::lexer::errors::{LexError, LexErrorKind};
-    use criterion_to_rust::lexer::token::lex;
 
     #[parameterized{base = {
         "'\\\\n'", "'\\xFFFFFF'", "'\\u00001F60'",
@@ -279,19 +334,28 @@ pub mod test_invalid_char {
         "hexadecimal_overflow",
         "small_unicode_8_digits"
     }}]
-    fn tests(base : &str, expected_errors : LexErrorKind, name : &str) {
+    fn tests(base: &str, expected_errors: LexErrorKind, name: &str) {
         println!("{}", lex(base).map_err(|e| e.to_string()).err().unwrap());
-        assert_eq!(lex(base).map_err(|mut e| {e.span = None; e}), Err(LexError::new(expected_errors)), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            lex(base).map_err(|mut e| {
+                e.span = None;
+                e
+            }),
+            Err(LexError::new(expected_errors)),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 }
 
 #[cfg(test)]
 pub mod test_valid_float {
-    use criterion_to_rust::lexer::token::*;
-    use parameterized::parameterized;
-    use criterion_to_rust::literals::{FloatLit, FloatSuffix};
-    use crate::assert_all_eq;
     use super::utils::*;
+    use crate::assert_all_eq;
+    use crustpiler::lexer::token::*;
+    use crustpiler::literals::{FloatLit, FloatSuffix};
+    use parameterized::parameterized;
 
     #[parameterized(base = {
         "0.0", ".0", "0.", "0e0", "0E0", "0e+0", "0E+0", "0e-0", "0x0p0", "0X0P0"
@@ -302,12 +366,18 @@ pub mod test_valid_float {
         "exponent_lower", "exponent_upper", "exponent_lower_plus", "exponent_upper_plus",
         "exponent_lower_minus", "hexadecimal_lower", "hexadecimal_upper"
     })]
-    fn test_zero(base : &str, float_value : f64, name : &str) {
+    fn test_zero(base: &str, float_value: f64, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::Float(FloatLit {
-            value: float_value,
-            suffix: FloatSuffix::Double,
-        }), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::Float(FloatLit {
+                value: float_value,
+                suffix: FloatSuffix::Double,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 
     #[parameterized(base = {
@@ -317,12 +387,18 @@ pub mod test_valid_float {
     }, name = {
         "decimal_point", "pi", "euler", "vogadro", "electron_charge", "hexadecimal_lower", "hexadecimal_upper"
     })]
-    fn test_positive(base : &str, float_value : f64, name : &str) {
+    fn test_positive(base: &str, float_value: f64, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::Float(FloatLit {
-            value: float_value,
-            suffix: FloatSuffix::Double,
-        }), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::Float(FloatLit {
+                value: float_value,
+                suffix: FloatSuffix::Double,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 
     #[parameterized(base = {
@@ -332,13 +408,19 @@ pub mod test_valid_float {
     }, name = {
         "decimal_point", "pi", "euler", "vogadro", "electron_charge", "hexadecimal_lower", "hexadecimal_upper"
     })]
-    fn test_f_suffix(base : &str, float_value : f64, name : &str) {
+    fn test_f_suffix(base: &str, float_value: f64, name: &str) {
         let sources = build_float_suffix(base, FloatSuffix::Float);
         let tokens = lex_tokens(&sources);
-        assert_eq!(tokens[0], Token::Float(FloatLit {
-            value: float_value,
-            suffix: FloatSuffix::Float,
-        }), "Test {} failed for source: {}", name, sources[0]);
+        assert_eq!(
+            tokens[0],
+            Token::Float(FloatLit {
+                value: float_value,
+                suffix: FloatSuffix::Float,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            sources[0]
+        );
         assert_all_eq!(tokens);
     }
 
@@ -349,22 +431,28 @@ pub mod test_valid_float {
     }, name = {
         "decimal_point", "pi", "euler", "vogadro", "electron_charge", "hexadecimal_lower", "hexadecimal_upper"
     })]
-    fn test_l_suffix(base : &str, float_value : f64, name : &str) {
+    fn test_l_suffix(base: &str, float_value: f64, name: &str) {
         let sources = build_float_suffix(base, FloatSuffix::LongDouble);
         let tokens = lex_tokens(&sources);
-        assert_eq!(tokens[0], Token::Float(FloatLit {
-            value: float_value,
-            suffix: FloatSuffix::LongDouble,
-        }), "Test {} failed for source: {}", name, sources[0]);
+        assert_eq!(
+            tokens[0],
+            Token::Float(FloatLit {
+                value: float_value,
+                suffix: FloatSuffix::LongDouble,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            sources[0]
+        );
         assert_all_eq!(tokens);
     }
 }
 
 pub mod test_valid_string {
-    use criterion_to_rust::lexer::token::*;
-    use parameterized::parameterized;
-    use criterion_to_rust::literals::{StringLit, StringPrefix};
     use crate::utils::lex_token;
+    use crustpiler::lexer::token::*;
+    use crustpiler::literals::{StringLit, StringPrefix};
+    use parameterized::parameterized;
 
     #[parameterized(base = {
         "\"Hello, World!\"", "\"\"", "\"\\n\"", "\"\\t\"", "\"\\\"\"", "\"\\\\\"", "\"caf\\u00e9\\t\\x41B\\0\\101\\\\\\\"\\nend\\U000000e9\""
@@ -373,13 +461,18 @@ pub mod test_valid_string {
     }, name = {
         "hello_world", "empty_string", "newline", "tab", "double_quote", "backslash", "complex_string"
     })]
-    fn tests(base : &str, string_value : &str, name : &str) {
+    fn tests(base: &str, string_value: &str, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::StringLit( StringLit {
-            value : string_value.to_string(),
-            prefix : StringPrefix::None,
-        }
-        ), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::StringLit(StringLit {
+                value: string_value.to_string(),
+                prefix: StringPrefix::None,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 
     #[parameterized(base = {
@@ -392,12 +485,17 @@ pub mod test_valid_string {
     }, name = {
         "u8_prefix", "u_prefix", "U_prefix", "L_prefix"
     })]
-    fn test_string_prefix(base : &str, string_prefix : StringPrefix, name : &str) {
+    fn test_string_prefix(base: &str, string_prefix: StringPrefix, name: &str) {
         let token = lex_token(base);
-        assert_eq!(token, Token::StringLit( StringLit {
-            value : "Hello, World!".to_string(),
-            prefix : string_prefix,
-        }
-        ), "Test {} failed for source: {}", name, base);
+        assert_eq!(
+            token,
+            Token::StringLit(StringLit {
+                value: "Hello, World!".to_string(),
+                prefix: string_prefix,
+            }),
+            "Test {} failed for source: {}",
+            name,
+            base
+        );
     }
 }

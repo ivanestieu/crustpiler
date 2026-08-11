@@ -11,7 +11,7 @@ use crate::ast::types::TypeExpr;
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructOrUnion {
     pub name: Option<String>,              // anonymous if None
-    pub fields: Option<Vec<StructMember>>,   // None = forward declaration
+    pub fields: Option<Vec<StructMember>>, // None = forward declaration
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +28,6 @@ pub struct FieldDecl {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldDeclarator {
-    pub declarator: Option<Declarator>,   // None for anonymous bitfield
+    pub declarator: Option<Declarator>, // None for anonymous bitfield
     pub bit_width: Option<Box<Spanned<Expr>>>,
 }
-

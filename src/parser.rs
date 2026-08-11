@@ -1,3 +1,3 @@
-pub mod parser;
 pub mod env;
-mod errors;
+pub(crate) mod errors;
+pub mod parser;

@@ -1,6 +1,6 @@
-pub mod token;
-mod int;
-mod float;
 mod char;
-mod string;
 pub mod errors;
+mod float;
+mod int;
+mod string;
+pub mod token;

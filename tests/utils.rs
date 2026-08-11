@@ -1,6 +1,6 @@
+use crustpiler::lexer::token::Token;
+use crustpiler::literals::{FloatSuffix, LongKind};
 use logos::Logos;
-use criterion_to_rust::lexer::token::Token;
-use criterion_to_rust::literals::{FloatSuffix, LongKind};
 
 pub fn build_int_suffix(base: &str, unsigned: bool, long_kind: LongKind) -> Vec<String> {
     let mut literals = Vec::new();
@@ -54,10 +54,14 @@ pub fn lex_tokens(vec: &Vec<String>) -> Vec<Token> {
 
 #[macro_export]
 macro_rules! assert_all_eq {
-        ($vec:expr) => {
-            let first = &$vec[0];
-            for (i, item) in $vec.iter().enumerate() {
-                assert_eq!(first, item, "Item at index {} does not match the first item.", i);
-            }
-        };
-    }
+    ($vec:expr) => {
+        let first = &$vec[0];
+        for (i, item) in $vec.iter().enumerate() {
+            assert_eq!(
+                first, item,
+                "Item at index {} does not match the first item.",
+                i
+            );
+        }
+    };
+}

@@ -1,21 +1,20 @@
-
 #[cfg(test)]
 mod tests {
-    use criterion_to_rust::ast::ast::*;
-    use criterion_to_rust::ast::declarations::{Decl, Initializer};
-    use criterion_to_rust::ast::types::{ArithType, BaseType, SizeSpec, TypeSpec};
-    use criterion_to_rust::lexer::token;
-    use criterion_to_rust::literals::{IntBase, IntSuffix};
-    use criterion_to_rust::parser::parser;
-    use criterion_to_rust::output::output;
+    use crustpiler::ast::ast::*;
+    use crustpiler::ast::declarations::{Decl, Declaration, Initializer};
+    use crustpiler::ast::types::{ArithType, BaseType, SizeSpec, TypeSpec};
+    use crustpiler::lexer::token;
+    use crustpiler::literals::{IntBase, IntSuffix};
+    use crustpiler::output::output;
+    use crustpiler::parser::parser;
 
-    fn parse(src: &str) -> Result<Decl, String> {
+    fn parse(src: &str) -> Result<Declaration, String> {
         let tokens = token::lex(src).map_err(|e| e.to_string())?;
-        parser::Parser::new(tokens).parse_decl()
+        parser::Parser::new(tokens).parse_declaration()
     }
 
     // Helper to strip trailing semicolon for parsing declarations
-    fn parse_without_semicolon(src: &str) -> Result<Decl, String> {
+    fn parse_without_semicolon(src: &str) -> Result<Declaration, String> {
         let src_without_semi = src.trim_end_matches(';').trim();
         parse(src_without_semi)
     }
@@ -30,10 +29,13 @@ mod tests {
                 token::Token::KwInt,
                 token::Token::Ident("x".into()),
                 token::Token::Equals,
-                token::Token::Int(criterion_to_rust::literals::IntLit        {
+                token::Token::Int(crustpiler::literals::IntLit {
                     value: 1,
                     base: IntBase::Decimal,
-                    suffix: IntSuffix { unsigned: false, long: criterion_to_rust::literals::LongKind::None },
+                    suffix: IntSuffix {
+                        unsigned: false,
+                        long: crustpiler::literals::LongKind::None
+                    },
                 }),
                 token::Token::SemiColon,
             ]
@@ -43,23 +45,31 @@ mod tests {
     #[test]
     fn builds_full_ast_decl() {
         let decl = parse_without_semicolon("int x = 1;").unwrap();
-        assert_eq!(decl.specifiers.type_spec, TypeSpec::Arithmetic(ArithType {
-            sign: None,
-            base: BaseType::Int,
-            size: SizeSpec::None,
-            complex: None,
-        }));
+        assert_eq!(
+            decl.specifiers.type_spec,
+            TypeSpec::Arithmetic(ArithType {
+                sign: None,
+                base: BaseType::Int,
+                size: SizeSpec::None,
+                complex: None,
+            })
+        );
         assert_eq!(decl.declarators.len(), 1);
 
         let d = &decl.declarators[0];
         assert_eq!(d.declarator.ident(), Some("x"));
         assert_eq!(
             d.init,
-            Some(Initializer::Expr(Box::new(Expr::IntLit(criterion_to_rust::literals::IntLit {
-                value: 1,
-                base: IntBase::Decimal,
-                suffix: IntSuffix { unsigned: false, long: criterion_to_rust::literals::LongKind::None },
-            }))))
+            Some(Initializer::Expr(Box::new(Expr::IntLit(
+                crustpiler::literals::IntLit {
+                    value: 1,
+                    base: IntBase::Decimal,
+                    suffix: IntSuffix {
+                        unsigned: false,
+                        long: crustpiler::literals::LongKind::None
+                    },
+                }
+            ))))
         );
     }
 
