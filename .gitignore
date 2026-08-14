@@ -21,6 +21,7 @@ Cargo.lock
 
 #produced files
 *.dot
+*.png
 
 coverage_info.py
 
