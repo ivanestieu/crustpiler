@@ -6,7 +6,6 @@ pub mod literals;
 pub mod output;
 pub mod parser;
 
-use crate::parser::errors::ParseError;
 use crate::ast::ast::Item;
 use crate::lexer::token;
 use crate::lexer::token::SpannedToken;
@@ -24,8 +23,7 @@ pub fn run(file_path: String) -> Result<(), String> {
         println!("  {:?}  @ {}..{}", t.token, t.span.start, t.span.end);
     }
 
-    let translation: Vec<Item> = Parser::new(tokens)
-        .parse_translation_unit().map_err(|e| {
+    let translation: Vec<Item> = Parser::new(tokens).parse_translation_unit().map_err(|e| {
         e.print_span(source);
         format!("{}", e)
     })?;

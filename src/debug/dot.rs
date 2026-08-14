@@ -29,7 +29,6 @@ use crate::ast::types::{TypeName, TypeSpec};
 use crate::criterion::criterion::{
     CriterionAssertion, CriterionBodyItem, CriterionFile, CriterionSuite, CriterionTest,
 };
-use crate::lexer::errors::{LexError, LexErrorKind};
 
 pub struct DotDumper {
     next_id: usize,
@@ -502,7 +501,11 @@ impl DotDumper {
                 if let Some(variants) = &e.variants {
                     for variant in variants {
                         let vid = self.id();
-                        self.node(vid, &format!("Enumerator '{}'", variant.name), NodeKind::Decl);
+                        self.node(
+                            vid,
+                            &format!("Enumerator '{}'", variant.name),
+                            NodeKind::Decl,
+                        );
                         self.edge(id, vid, "variant");
 
                         if let Some(value) = &variant.value {
@@ -557,7 +560,7 @@ impl DotDumper {
             self.node(aid, "_Alignas", NodeKind::Type);
             self.edge(id, aid, "alignment");
             match align {
-                AlignmentSpecifier::Type(tn) => {
+                AlignmentSpecifier::TypeName(tn) => {
                     let c = self.type_name(tn);
                     self.edge(aid, c, "type");
                 }

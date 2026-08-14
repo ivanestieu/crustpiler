@@ -3,7 +3,6 @@
 // ONE big specifier structure, collected by ONE shared builder, with context
 // rules applied at add time.
 
-use itertools::Itertools;
 pub(crate) use crate::ast::declarations::AlignmentSpecifier;
 use crate::ast::types::{
     ArithType, BaseType, Complex, FunctionSpecifier, Sign, SizeSpec, StorageClass, TypeQualifier,
@@ -56,18 +55,15 @@ impl TypeExprContext {
     fn validate_storage_class(&self, &sc: &StorageClass) -> Result<(), String> {
         match self {
             TypeExprContext::StructUnionField => {
-                Err("a storage-class specifier is not allowed on a struct/union member".into())
+                Err("storage-class specifiers are not allowed on a struct/union member".into())
             }
             TypeExprContext::TypeName => {
-                Err("a storage-class specifier is not allowed in a type name".into())
+                Err("storage-class specifiers are not allowed in a type name".into())
             }
             TypeExprContext::Parameter => match sc {
-                StorageClass::ThreadLocal => {
-                    Err("`_Thread_local` is not allowed on a parameter".into())
-                }
                 StorageClass::Register => Ok(()),
                 _ => Err(format!(
-                    "only `register` is allowed as a storage class on a parameter, found `{:?}`",
+                    "only `register` is allowed as storage-class specifier on a parameter, found `{:?}`",
                     sc
                 )),
             },
@@ -77,9 +73,9 @@ impl TypeExprContext {
 
     fn validate_function_specifiers(&self) -> Result<(), String> {
         match self {
-            TypeExprContext::StructUnionField => Err("a function specifier (`inline`/`_Noreturn`) is not allowed on a struct/union member".into()),
-            TypeExprContext::TypeName => Err("a function specifier is not allowed in a type name".into()),
-            TypeExprContext::Parameter => Err("a function specifier is not allowed on a parameter".into()),
+            TypeExprContext::StructUnionField => Err("function specifiers (`inline`/`_Noreturn`) are not allowed on a struct/union member".into()),
+            TypeExprContext::TypeName => Err("function specifiers (`inline`/`_Noreturn`) are not allowed in a type name".into()),
+            TypeExprContext::Parameter => Err("function specifiers (`inline`/`_Noreturn`) are not allowed on a parameter".into()),
             _ => Ok(())
         }
     }
@@ -98,7 +94,7 @@ impl TypeExprContext {
 // depending on context, resolve on finish
 // -----------------------------------------------------------------------------
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq)]
 pub struct TypeExprBuilder {
     context: TypeExprContext,
     // storage
@@ -197,11 +193,17 @@ impl TypeExprBuilder {
     }
     pub fn set_void(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`void`")?;
+        if self.saw_void {
+            return Err("duplicate `void`".into());
+        }
         self.saw_void = true;
         Ok(())
     }
     pub fn set_bool(&mut self) -> Result<(), String> {
         self.reject_if_tagged("`_Bool`")?;
+        if self.saw_bool {
+            return Err("duplicate `_Bool`".into());
+        }
         self.saw_bool = true;
         Ok(())
     }
@@ -296,13 +298,13 @@ impl TypeExprBuilder {
             return Ok(spec.clone());
         }
         if self.saw_void {
-            if self.has_other_than(true) {
+            if !self.is_void_only() {
                 return Err("`void` cannot combine with other type specifiers".into());
             }
             return Ok(TypeSpec::Void);
         }
         if self.saw_bool {
-            if self.has_other_than(false) {
+            if !self.is_bool_only() {
                 return Err("`_Bool` cannot combine with other type specifiers".into());
             }
             return Ok(TypeSpec::Bool);
@@ -328,17 +330,24 @@ impl TypeExprBuilder {
         }))
     }
 
-    fn has_other_than(&self, checking_void: bool) -> bool {
-        let arith = self.sign.is_some()
+    #[inline]
+    fn is_void_only(&self) -> bool {
+        self.sign.is_some()
             || self.short_count > 0
             || self.long_count > 0
             || self.base.is_some()
-            || self.complex.is_some();
-        if checking_void {
-            arith || self.saw_bool
-        } else {
-            arith || self.saw_void
-        }
+            || self.complex.is_some()
+            || self.saw_bool
+    }
+
+    #[inline]
+    fn is_bool_only(&self) -> bool {
+        self.sign.is_some()
+            || self.short_count > 0
+            || self.long_count > 0
+            || self.base.is_some()
+            || self.complex.is_some()
+            || self.saw_void
     }
 }
 
@@ -350,8 +359,12 @@ fn resolve_size(short_count: u32, long_count: u32) -> Result<SizeSpec, String> {
         (1, 0) => Ok(SizeSpec::Short),
         (0, 1) => Ok(SizeSpec::Long),
         (0, 2) => Ok(SizeSpec::LongLong),
-        (s, 0) if s > 1 => Err("`short short` is not a valid type".into()),
-        (0, l) if l > 2 => Err("`long long long` is too long".into()),
+        (s, 0) if s > 1 => Err(format!(
+            "`{}` is too short", "short ".repeat(s as usize).trim_end()
+        )),
+        (0, l) if l > 2 => Err(format!(
+            "`{}` is too long", "long ".repeat(l as usize).trim_end()
+        )),
         _ => Err("`short` and `long` cannot be combined".into()),
     }
 }
@@ -382,10 +395,14 @@ fn validate_base_sign(base: &BaseType, sign: &Option<Sign>) -> Result<(), String
 }
 
 fn validate_base_complex(base: &BaseType, complex: &Option<Complex>) -> Result<(), String> {
-    match (base, complex) {
-        (BaseType::Int | BaseType::Char, Some(_)) => {
+    match base {
+        BaseType::Int | BaseType::Char if complex.is_some() => {
             Err("`_Complex`/`_Imaginary` require a floating base type".into())
         }
         _ => Ok(()),
     }
 }
+
+#[cfg(test)]
+#[path = "tests/decl_specifiers_tests.rs"]
+mod decl_specifiers_tests;

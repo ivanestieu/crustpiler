@@ -11,8 +11,8 @@ use crate::literals::StringLit;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AlignmentSpecifier {
-    Type(Box<TypeName>),
-    Expr(Box<Expr>),
+    TypeName(Box<TypeName>),
+    Expr(Box<Expr>), // expr must be evaluable at compile time
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,6 +1,9 @@
 use crate::ast::ast::{Expr, GenericAssoc, Item};
 use crate::ast::decl_specifiers::{TypeExprBuilder, TypeExprContext};
-use crate::ast::declarations::{AlignmentSpecifier, Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer, StaticAssert};
+use crate::ast::declarations::{
+    AlignmentSpecifier, Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer,
+    StaticAssert,
+};
 use crate::ast::declarator::{ArraySize, Declarator};
 use crate::ast::enums::{EnumSpec, Enumerator};
 use crate::ast::function_def::FunctionDef;
@@ -8,7 +11,10 @@ use crate::ast::operators::{AsAssignOp, AsBinaryOp, AsUnaryOp, PostfixOp, TraitB
 use crate::ast::parameters::ParamDecl;
 use crate::ast::span::{Span, Spanned};
 use crate::ast::struct_union::{FieldDecl, FieldDeclarator, StructMember, StructOrUnion};
-use crate::ast::types::{AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, StorageClass, TypeExpr, TypeName, TypeQualifier, TypeSpec};
+use crate::ast::types::{
+    AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, TypeExpr,
+    TypeName, TypeQualifier, TypeSpec,
+};
 use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::env::Env;
@@ -25,7 +31,7 @@ impl Parser {
         Self {
             tokens,
             pos: 0,
-            env: Env::new(),
+            env: Default::default(),
         }
     }
     fn attempt<T, F>(&mut self, f: F) -> Result<T, ParseError>
@@ -69,6 +75,7 @@ impl Parser {
         tok
     }
 
+    /// Rename of advance for understanding purposes
     fn consumes_token(&mut self) -> () {
         self.advance();
     }
@@ -82,7 +89,8 @@ impl Parser {
                 other,
                 self.peek_span().start,
                 self.peek_span().end
-            ).span(self.peek_span().start, self.peek_span().end))
+            )
+            .span(self.peek_span().start, self.peek_span().end)),
         }
     }
 
@@ -97,21 +105,14 @@ impl Parser {
     fn extract_identifier(declarator: &Declarator) -> Result<String, ParseError> {
         match declarator {
             Declarator::Ident(name) => Ok(name.clone()),
-            Declarator::Pointer {
-                inner,
-                ..
-            } | Declarator::Array {
-                inner,
-                ..
-            } | Declarator::Function {
-                inner,
-                ..
-            } => Self::extract_identifier(inner),
+            Declarator::Pointer { inner, .. }
+            | Declarator::Array { inner, .. }
+            | Declarator::Function { inner, .. } => Self::extract_identifier(inner),
             _ => Err(parse_error!("Expected identifier, found {:?}", declarator)),
         }
     }
 
-    pub fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
+    fn parse_declaration(&mut self) -> Result<Declaration, ParseError> {
         let start = self.peek_span();
 
         if let Ok(static_assert) = self.attempt(|p| p.parse_static_assert_declaration()) {
@@ -125,12 +126,11 @@ impl Parser {
             .parse_type_expr(TypeExprContext::Declaration)
             .on_err_context("parse_declaration", "Expected a mandatory type expression")?;
 
-        let mut declarators: Vec<InitDeclarator> =
-            if let Ok(ok) = self.parse_init_declarator() {
-                vec![ok]
-            } else {
-                vec![]
-            };
+        let mut declarators: Vec<InitDeclarator> = if let Ok(ok) = self.parse_init_declarator() {
+            vec![ok]
+        } else {
+            vec![]
+        };
         while self.expect(&Token::Comma).is_ok() {
             declarators.push(self.parse_init_declarator().on_err_context(
                 "parse_declaration",
@@ -145,7 +145,6 @@ impl Parser {
                 }
             });
         }
-
 
         self.expect(&Token::SemiColon)
             .on_err_context("parse_declaration", "a semicolon should end a declaration")?;
@@ -351,11 +350,14 @@ impl Parser {
             designators.push(match self.peek() {
                 Some(Token::LeftBracket) => {
                     self.consumes_token();
-                    let expr = self
-                        .parse_conditional_expr()
-                        .on_err_context("parse_designation", "in a designation, brackets must go around conditional expression")?;
-                    self.expect(&Token::RightBracket)
-                        .on_err_context("parse_designation", "a designation starting by '[' must end with a right bracket")?;
+                    let expr = self.parse_conditional_expr().on_err_context(
+                        "parse_designation",
+                        "in a designation, brackets must go around conditional expression",
+                    )?;
+                    self.expect(&Token::RightBracket).on_err_context(
+                        "parse_designation",
+                        "a designation starting by '[' must end with a right bracket",
+                    )?;
                     Designator::Index(Box::new(expr.node)) // evaluable at compile-time
                 }
                 Some(Token::Dot) => {
@@ -396,8 +398,10 @@ impl Parser {
                     .parse_initializer_list()
                     .on_err_context("parse_initializer", "failed to parse initializer list")?;
                 self.expect(&Token::Comma).ok();
-                self.expect(&Token::RightBrace)
-                    .on_err_context("parse_initializer", "expected right brace to close initializer list")?;
+                self.expect(&Token::RightBrace).on_err_context(
+                    "parse_initializer",
+                    "expected right brace to close initializer list",
+                )?;
                 Ok(Initializer::List(initializers))
             }
             _ => Ok(Initializer::Expr(Box::new(
@@ -420,7 +424,8 @@ impl Parser {
             }
             let init_item = InitItem {
                 designators: designation,
-                value: initializer.on_err_context("parse_initializer_list", "failed to parse initializer item")?,
+                value: initializer
+                    .on_err_context("parse_initializer_list", "failed to parse initializer item")?,
             };
             initializers.push(init_item);
             if self.expect(&Token::Comma).is_err() {
@@ -432,19 +437,31 @@ impl Parser {
 
     fn parse_compound_literal(&mut self) -> Result<Spanned<Expr>, ParseError> {
         let start = self.peek_span();
-        self.expect(&Token::LeftParenthesis)
-            .on_err_context("parse_compound_literal", "expected left parenthesis to open compound literal")?;
-        let type_name = self.parse_type_name().on_err_context("parse_type_name", "failed to parse type name in compound literal")?;
-        self.expect(&Token::RightParenthesis)
-            .on_err_context("parse_compound_literal", "expected right parenthesis to close compound literal")?;
-        self.expect(&Token::LeftBrace)
-            .on_err_context("parse_compound_literal", "expected left brace to open compound literal initializer list")?;
-        let initializers = self
-            .parse_initializer_list()
-            .on_err_context("parse_compound_literal", "failed to parse compound literal initializer list")?;
+        self.expect(&Token::LeftParenthesis).on_err_context(
+            "parse_compound_literal",
+            "expected left parenthesis to open compound literal",
+        )?;
+        let type_name = self.parse_type_name().on_err_context(
+            "parse_type_name",
+            "failed to parse type name in compound literal",
+        )?;
+        self.expect(&Token::RightParenthesis).on_err_context(
+            "parse_compound_literal",
+            "expected right parenthesis to close compound literal",
+        )?;
+        self.expect(&Token::LeftBrace).on_err_context(
+            "parse_compound_literal",
+            "expected left brace to open compound literal initializer list",
+        )?;
+        let initializers = self.parse_initializer_list().on_err_context(
+            "parse_compound_literal",
+            "failed to parse compound literal initializer list",
+        )?;
         self.expect(&Token::Comma).ok(); // Optional trailing Comma
-        self.expect(&Token::RightBrace)
-            .on_err_context("parse_compound_literal", "expected right brace to close compound literal initializer list")?;
+        self.expect(&Token::RightBrace).on_err_context(
+            "parse_compound_literal",
+            "expected right brace to close compound literal initializer list",
+        )?;
         Ok(Spanned {
             node: Expr::CompoundLit {
                 type_name,
@@ -467,23 +484,26 @@ impl Parser {
                     base = Spanned {
                         node: Expr::Index {
                             array: Box::new(base),
-                            index: Box::new(
-                                self.parse_expr().on_err_context("parse_postfix_expr", "failed to parse index expression")?,
-                            ),
+                            index: Box::new(self.parse_expr().on_err_context(
+                                "parse_postfix_expr",
+                                "failed to parse index expression",
+                            )?),
                         },
                         span: start.merge(&self.prev_span()),
                     };
-                    self.expect(&Token::RightBracket)
-                        .on_err_context("parse_postfix_expr", "expected right bracket to close index expression")?;
+                    self.expect(&Token::RightBracket).on_err_context(
+                        "parse_postfix_expr",
+                        "expected right bracket to close index expression",
+                    )?;
                 }
                 Some(Token::LeftParenthesis) => {
                     self.consumes_token();
                     let mut args = Vec::new();
                     while self.expect(&Token::RightParenthesis).is_ok() {
-                        args.push(
-                            self.parse_assignment_expr()
-                                .on_err_context("parse_postfix_expr", "failed to parse assignment expression")?,
-                        );
+                        args.push(self.parse_assignment_expr().on_err_context(
+                            "parse_postfix_expr",
+                            "failed to parse assignment expression",
+                        )?);
                         if self.expect(&Token::Comma).is_err() {
                             break;
                         }
@@ -575,14 +595,17 @@ impl Parser {
                 | Token::Star
                 | Token::Ampersand),
             ) => {
-                let unary_op = tok.as_unary_op().on_err_context("parse_unary_expr", "failed to parse unary operator")?;
+                let unary_op = tok
+                    .as_unary_op()
+                    .on_err_context("parse_unary_expr", "failed to parse unary operator")?;
                 self.advance();
                 to_spanned(
                     Expr::UnaryOp {
                         op: unary_op,
-                        operand: Box::new(
-                            self.parse_cast_expr().on_err_context("parse_unary_expr", "failed to parse cast expression following a unary operator")?,
-                        ),
+                        operand: Box::new(self.parse_cast_expr().on_err_context(
+                            "parse_unary_expr",
+                            "failed to parse cast expression following a unary operator",
+                        )?),
                     },
                     self.prev_span(),
                 )
@@ -591,19 +614,23 @@ impl Parser {
                 self.consumes_token();
                 if self.expect(&Token::LeftParenthesis).is_ok() {
                     let span = to_spanned(
-                        Expr::SizeofType(
-                            self.parse_type_name().on_err_context("parse_unary_expr", "failed to parse type name in sizeof expression")?,
-                        ),
+                        Expr::SizeofType(self.parse_type_name().on_err_context(
+                            "parse_unary_expr",
+                            "failed to parse type name in sizeof expression",
+                        )?),
                         self.prev_span(),
                     );
-                    self.expect(&Token::RightParenthesis)
-                        .on_err_context("parse_unary_expr", "failed to parse right parenthesis in sizeof expression")?;
+                    self.expect(&Token::RightParenthesis).on_err_context(
+                        "parse_unary_expr",
+                        "failed to parse right parenthesis in sizeof expression",
+                    )?;
                     span
                 } else {
                     to_spanned(
-                        Expr::SizeofExpr(Box::new(
-                            self.parse_unary_expr().on_err_context("parse_unary_expr", "failed to parse unary expression in sizeof expression")?,
-                        )),
+                        Expr::SizeofExpr(Box::new(self.parse_unary_expr().on_err_context(
+                            "parse_unary_expr",
+                            "failed to parse unary expression in sizeof expression",
+                        )?)),
                         self.prev_span(),
                     )
                 }
@@ -613,7 +640,10 @@ impl Parser {
                 self.expect(&Token::LeftParenthesis)
                     .on_err_context("parse_unary_expr", "failed to parse alignof expression")?;
                 to_spanned(
-                    Expr::SizeofType(self.parse_type_name().on_err_context("parse_unary_expr", "failed to parse type name in alignof expression")?),
+                    Expr::AlignofType(self.parse_type_name().on_err_context(
+                        "parse_unary_expr",
+                        "failed to parse type name in alignof expression",
+                    )?),
                     self.prev_span(),
                 )
             }
@@ -630,12 +660,17 @@ impl Parser {
         let start = self.peek_span();
         if self.peek() == Some(&Token::LeftParenthesis) {
             if let Ok(type_name) = self.attempt(|p| p.parse_type_name()) {
-                self.expect(&Token::RightParenthesis)
-                    .on_err_context("parse_cast_expr", "failed to parse right parenthesis in cast expression")?;
+                self.expect(&Token::RightParenthesis).on_err_context(
+                    "parse_cast_expr",
+                    "failed to parse right parenthesis in cast expression",
+                )?;
                 return Ok(Spanned {
                     node: Expr::Cast {
                         type_name,
-                        expr: Box::new(self.parse_cast_expr().on_err_context("parse_cast_expr", "failed to parse cast expression")?),
+                        expr: Box::new(self.parse_cast_expr().on_err_context(
+                            "parse_cast_expr",
+                            "failed to parse cast expression",
+                        )?),
                     },
                     span: start.merge(&self.prev_span()),
                 });
@@ -645,7 +680,9 @@ impl Parser {
     }
 
     fn parse_binary_expr(&mut self, min_bp: Option<usize>) -> Result<Spanned<Expr>, ParseError> {
-        let mut lhs = self.parse_cast_expr().on_err_context("parse_binary_expr", "failed to parse cast expression")?;
+        let mut lhs = self
+            .parse_cast_expr()
+            .on_err_context("parse_binary_expr", "failed to parse cast expression")?;
         while let Some(token) = self.peek()
             && let Ok(op) = token.as_binary_op()
         {
@@ -672,21 +709,28 @@ impl Parser {
     }
 
     fn parse_conditional_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
-        let lhs = self
-            .parse_binary_expr(None)
-            .on_err_context("parse_conditional_expr", "failed to parse binary expression")?;
+        let lhs = self.parse_binary_expr(None).on_err_context(
+            "parse_conditional_expr",
+            "failed to parse binary expression",
+        )?;
         let middle: Spanned<Expr> = match self.peek() {
             Some(Token::InterrogationMark) => {
                 self.advance();
-                self.parse_expr().on_err_context("parse_conditional_expr", "failed to parse conditional expression")?
+                self.parse_expr().on_err_context(
+                    "parse_conditional_expr",
+                    "failed to parse conditional expression",
+                )?
             }
             _ => return Ok(lhs),
         };
-        self.expect(&Token::Colon)
-            .on_err_context("parse_conditional_expr", "failed to parse colon in conditional expression")?;
-        let rhs = self
-            .parse_conditional_expr()
-            .on_err_context("parse_conditional_expr", "failed to parse conditional expression")?;
+        self.expect(&Token::Colon).on_err_context(
+            "parse_conditional_expr",
+            "failed to parse colon in conditional expression",
+        )?;
+        let rhs = self.parse_conditional_expr().on_err_context(
+            "parse_conditional_expr",
+            "failed to parse conditional expression",
+        )?;
         let span = lhs.span.merge(&rhs.span);
         Ok(Spanned {
             node: Expr::Ternary {
@@ -699,9 +743,10 @@ impl Parser {
     }
 
     fn parse_assignment_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
-        let mut lhs = self
-            .parse_conditional_expr()
-            .on_err_context("parse_assignment_expr", "failed to parse conditional expression")?;
+        let mut lhs = self.parse_conditional_expr().on_err_context(
+            "parse_assignment_expr",
+            "failed to parse conditional expression",
+        )?;
         if !matches!(
             lhs,
             Spanned {
@@ -715,9 +760,10 @@ impl Parser {
             && let Ok(op) = token.as_assign_op()
         {
             self.consumes_token();
-            let rhs = self
-                .parse_assignment_expr()
-                .on_err_context("parse_assignment_expr", "failed to parse assignment expression")?;
+            let rhs = self.parse_assignment_expr().on_err_context(
+                "parse_assignment_expr",
+                "failed to parse assignment expression",
+            )?;
             let span = lhs.span.merge(&rhs.span);
             lhs = Spanned {
                 node: Expr::Assign {
@@ -733,9 +779,13 @@ impl Parser {
 
     fn parse_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
         let start = self.peek_span();
-        let mut lhs = self.parse_assignment_expr().on_err_context("parse_expr", "failed to parse assignment expression")?;
+        let mut lhs = self
+            .parse_assignment_expr()
+            .on_err_context("parse_expr", "failed to parse assignment expression")?;
         while self.expect(&Token::Comma).is_ok() {
-            let rhs = self.parse_assignment_expr().on_err_context("parse_expr", "failed to parse assignment expression")?;
+            let rhs = self
+                .parse_assignment_expr()
+                .on_err_context("parse_expr", "failed to parse assignment expression")?;
             lhs = Spanned {
                 node: Expr::Comma(Box::new(lhs), Box::new(rhs)),
                 span: start.merge(&self.prev_span()),
@@ -776,8 +826,10 @@ impl Parser {
         is_abstract: bool,
         base: Declarator,
     ) -> Result<Declarator, ParseError> {
-        self.expect(&Token::LeftBracket)
-            .on_err_context("parse_array_suffix", "failed to parse left bracket in array suffix")?;
+        self.expect(&Token::LeftBracket).on_err_context(
+            "parse_array_suffix",
+            "failed to parse left bracket in array suffix",
+        )?;
         let mut is_static = matches!(self.peek(), Some(Token::KwStatic));
         if is_static {
             self.consumes_token();
@@ -810,8 +862,10 @@ impl Parser {
             })
             .unwrap_or(ArraySize::None)
         };
-        self.expect(&Token::RightBracket)
-            .on_err_context("parse_array_suffix", "failed to parse right bracket in array suffix")?;
+        self.expect(&Token::RightBracket).on_err_context(
+            "parse_array_suffix",
+            "failed to parse right bracket in array suffix",
+        )?;
         Ok(Declarator::Array {
             inner: Box::new(base),
             size,
@@ -841,8 +895,10 @@ impl Parser {
     }
 
     fn parse_function_suffix(&mut self, base: Declarator) -> Result<Declarator, ParseError> {
-        self.expect(&Token::LeftParenthesis)
-            .on_err_context("parse_function_suffix", "failed to parse left parenthesis in function suffix")?;
+        self.expect(&Token::LeftParenthesis).on_err_context(
+            "parse_function_suffix",
+            "failed to parse left parenthesis in function suffix",
+        )?;
         if self.peek() == Some(&Token::RightParenthesis) {
             self.consumes_token();
             return Ok(Declarator::Function {
@@ -870,13 +926,17 @@ impl Parser {
             }
             let type_expr = self
                 .parse_type_expr(TypeExprContext::Declaration)
-                .on_err_context("parse_function_suffix", "failed to parse type expression in function suffix")?;
+                .on_err_context(
+                    "parse_function_suffix",
+                    "failed to parse type expression in function suffix",
+                )?;
             let declarator = if let Ok(decl) = self.parse_declarator(false) {
                 decl
             } else {
-                let abs_decl = self
-                    .parse_declarator(true)
-                    .on_err_context("parse_function_suffix", "failed to parse abstract declarator in function suffix")?;
+                let abs_decl = self.parse_declarator(true).on_err_context(
+                    "parse_function_suffix",
+                    "failed to parse abstract declarator in function suffix",
+                )?;
                 if type_expr.is_void() && params.is_empty() {
                     break; // Special case ident(void)
                 }
@@ -891,8 +951,10 @@ impl Parser {
             }
         }
         // Parse function parameters
-        self.expect(&Token::RightParenthesis)
-            .on_err_context("parse_function_suffix", "failed to parse right parenthesis in function suffix")?;
+        self.expect(&Token::RightParenthesis).on_err_context(
+            "parse_function_suffix",
+            "failed to parse right parenthesis in function suffix",
+        )?;
         Ok(Declarator::Function {
             inner: Box::new(base),
             params: Some(params),
@@ -902,23 +964,34 @@ impl Parser {
     }
 
     fn parse_static_assert_declaration(&mut self) -> Result<StaticAssert, ParseError> {
-        self.expect(&Token::KwStaticAssert)
-            .on_err_context("parse_static_assert_declaration", "failed to parse static assert keyword")?;
-        self.expect(&Token::LeftParenthesis)
-            .on_err_context("parse_static_assert_declaration", "failed to parse left parenthesis in static assert declaration")?;
-        let cond = self
-            .parse_conditional_expr()
-            .on_err_context("parse_static_assert_declaration", "failed to parse conditional expression in static assert declaration")?; // evaluable at compile-time
-        self.expect(&Token::Comma)
-            .on_err_context("parse_static_assert_declaration", "failed to parse comma in static assert declaration")?;
+        self.expect(&Token::KwStaticAssert).on_err_context(
+            "parse_static_assert_declaration",
+            "failed to parse static assert keyword",
+        )?;
+        self.expect(&Token::LeftParenthesis).on_err_context(
+            "parse_static_assert_declaration",
+            "failed to parse left parenthesis in static assert declaration",
+        )?;
+        let cond = self.parse_conditional_expr().on_err_context(
+            "parse_static_assert_declaration",
+            "failed to parse conditional expression in static assert declaration",
+        )?; // evaluable at compile-time
+        self.expect(&Token::Comma).on_err_context(
+            "parse_static_assert_declaration",
+            "failed to parse comma in static assert declaration",
+        )?;
         let message = match self.peek() {
             Some(Token::StringLit(s)) => {
                 let slit = s.clone();
                 self.advance();
-                self.expect(&Token::RightParenthesis)
-                    .on_err_context("parse_static_assert_declaration", "failed to parse right parenthesis in static assert declaration")?;
-                self.expect(&Token::SemiColon)
-                    .on_err_context("parse_static_assert_declaration", "failed to parse semicolon in static assert declaration")?;
+                self.expect(&Token::RightParenthesis).on_err_context(
+                    "parse_static_assert_declaration",
+                    "failed to parse right parenthesis in static assert declaration",
+                )?;
+                self.expect(&Token::SemiColon).on_err_context(
+                    "parse_static_assert_declaration",
+                    "failed to parse semicolon in static assert declaration",
+                )?;
                 slit
             }
             other => {
@@ -936,24 +1009,26 @@ impl Parser {
 
     fn parse_struct_declarator(&mut self) -> Result<FieldDeclarator, ParseError> {
         if self.expect(&Token::Colon).is_ok() {
-            let constant_expr = self
-                .parse_conditional_expr()
-                .on_err_context("parse_struct_declarator", "failed to parse constant expression in struct declarator")?; // evaluable at compile-time
+            let constant_expr = self.parse_conditional_expr().on_err_context(
+                "parse_struct_declarator",
+                "failed to parse constant expression in struct declarator",
+            )?; // evaluable at compile-time
             return Ok(FieldDeclarator {
                 declarator: None,
                 bit_width: Some(Box::new(constant_expr)),
             });
         }
-        let declarator = self
-            .parse_declarator(false)
-            .on_err_context("parse_struct_declarator", "failed to parse declarator in struct declarator")?;
+        let declarator = self.parse_declarator(false).on_err_context(
+            "parse_struct_declarator",
+            "failed to parse declarator in struct declarator",
+        )?;
         let field_declarator = Ok(FieldDeclarator {
             declarator: Some(declarator),
             bit_width: if self.expect(&Token::Colon).is_ok() {
-                Some(Box::new(
-                    self.parse_conditional_expr()
-                        .on_err_context("parse_struct_declarator", "failed to parse conditional expression in struct declarator")?,
-                )) // evaluable at compile-time
+                Some(Box::new(self.parse_conditional_expr().on_err_context(
+                    "parse_struct_declarator",
+                    "failed to parse conditional expression in struct declarator",
+                )?)) // evaluable at compile-time
             } else {
                 None
             },
@@ -978,14 +1053,21 @@ impl Parser {
         }
         let specifiers = self
             .parse_type_expr(TypeExprContext::StructUnionField)
-            .on_err_context("parse_struct_declaration", "failed to parse type expression in struct declaration")?;
-        let declarators = self.parse_struct_declarator_list()
-                .on_err_context("parse_struct_declaration", "failed to parse struct declarator list in struct declaration")?;
-        self.expect(&Token::SemiColon)
-            .on_err_context("parse_struct_declaration", "a struct declaration must be followed by a semicolon")?;
+            .on_err_context(
+                "parse_struct_declaration",
+                "failed to parse type expression in struct declaration",
+            )?;
+        let declarators = self.parse_struct_declarator_list().on_err_context(
+            "parse_struct_declaration",
+            "failed to parse struct declarator list in struct declaration",
+        )?;
+        self.expect(&Token::SemiColon).on_err_context(
+            "parse_struct_declaration",
+            "a struct declaration must be followed by a semicolon",
+        )?;
         Ok(StructMember::Field(FieldDecl {
             type_expr: specifiers,
-            declarators
+            declarators,
         }))
     }
 
@@ -1009,8 +1091,10 @@ impl Parser {
         while let Ok(field) = self.parse_struct_declaration() {
             fields.push(field);
         }
-        self.expect(&Token::RightBrace)
-            .on_err_context("parse_struct_or_union", "failed to parse right brace in struct or union declaration")?;
+        self.expect(&Token::RightBrace).on_err_context(
+            "parse_struct_or_union",
+            "failed to parse right brace in struct or union declaration",
+        )?;
         Ok(StructOrUnion {
             name,
             fields: Some(fields),
@@ -1034,7 +1118,8 @@ impl Parser {
             return Err(parse_error!(
                 "Enum: enums cannot be anonymous without a body, found {:?}",
                 self.peek()
-            ).span(self.peek_span().start, self.peek_span().end));
+            )
+            .span(self.peek_span().start, self.peek_span().end));
         }
         let mut variants = Vec::new();
         while self.expect(&Token::RightBrace).is_err() {
@@ -1048,7 +1133,10 @@ impl Parser {
             let variant_value = if self.expect(&Token::Equals).is_ok() {
                 Some(Box::new(
                     self.parse_conditional_expr()
-                        .on_err_context("parse_enum", "failed to parse conditional expression in enum variant")?
+                        .on_err_context(
+                            "parse_enum",
+                            "failed to parse conditional expression in enum variant",
+                        )?
                         .node,
                 )) // evaluable at compile-time
             } else {
@@ -1069,29 +1157,42 @@ impl Parser {
     }
 
     fn parse_alignment_specifier(&mut self) -> Result<AlignmentSpecifier, ParseError> {
-        self.expect(&Token::LeftParenthesis)
-            .on_err_context("parse_alignment_specifier", "failed to parse left parenthesis in alignment specifier")?;
+        self.expect(&Token::LeftParenthesis).on_err_context(
+            "parse_alignment_specifier",
+            "failed to parse left parenthesis in alignment specifier",
+        )?;
         let try_type = self.attempt(|p| p.parse_type_name());
         let align = if try_type.is_ok() {
-            Ok(AlignmentSpecifier::Type(Box::new(
-                try_type.on_err_context("parse_alignment_specifier", "failed to parse type name in alignment specifier")?,
+            Ok(AlignmentSpecifier::TypeName(Box::new(
+                try_type.on_err_context(
+                    "parse_alignment_specifier",
+                    "failed to parse type name in alignment specifier",
+                )?,
             )))
         } else {
             Ok(AlignmentSpecifier::Expr(Box::new(
                 self.parse_conditional_expr()
-                    .on_err_context("parse_alignment_specifier", "failed to parse conditional expression in alignment specifier")?
+                    .on_err_context(
+                        "parse_alignment_specifier",
+                        "failed to parse conditional expression in alignment specifier",
+                    )?
                     .node,
             )))
         };
-        self.expect(&Token::RightParenthesis)
-            .on_err_context("parse_alignment_specifier", "failed to parse right parenthesis in alignment specifier")?;
+        self.expect(&Token::RightParenthesis).on_err_context(
+            "parse_alignment_specifier",
+            "failed to parse right parenthesis in alignment specifier",
+        )?;
         align
     }
 
     fn parse_type_name(&mut self) -> Result<TypeName, ParseError> {
         let type_expr = self
             .parse_type_expr(TypeExprContext::TypeName)
-            .on_err_context("parse_type_name", "failed to parse type expression in type name")?;
+            .on_err_context(
+                "parse_type_name",
+                "failed to parse type expression in type name",
+            )?;
         let abstract_decl = self.parse_declarator(true).unwrap_or(Declarator::Abstract);
         Ok(TypeName {
             type_expr,
@@ -1105,38 +1206,58 @@ impl Parser {
             match self.peek() {
                 // Storage
                 Some(token) if let Ok(sc) = token.as_storage_class() => {
-                    builder.add_storage(sc).on_err_context("parse_type_expr", "failed to parse storage class in type expression")?
+                    builder.add_storage(sc).on_err_context(
+                        "parse_type_expr",
+                        "failed to parse storage class in type expression",
+                    )?
                 }
 
                 // Arithmetic related
-                Some(Token::KwVoid) => builder.set_void().on_err_context("parse_type_expr", "failed to parse void in type expression")?,
-                Some(Token::KwBool) => builder.set_bool().on_err_context("parse_type_expr", "failed to parse bool in type expression")?,
+                Some(Token::KwVoid) => builder
+                    .set_void()
+                    .on_err_context("parse_type_expr", "failed to parse void in type expression")?,
+                Some(Token::KwBool) => builder
+                    .set_bool()
+                    .on_err_context("parse_type_expr", "failed to parse bool in type expression")?,
                 Some(Token::KwChar) => builder
                     .add_base(BaseType::Char)
                     .on_err_context("parse_type_expr", "failed to parse char in type expression")?,
-                Some(Token::KwShort) => builder.add_short().on_err_context("parse_type_expr", "failed to parse short in type expression")?,
+                Some(Token::KwShort) => builder.add_short().on_err_context(
+                    "parse_type_expr",
+                    "failed to parse short in type expression",
+                )?,
                 Some(Token::KwInt) => builder
                     .add_base(BaseType::Int)
                     .on_err_context("parse_type_expr", "failed to parse int in type expression")?,
-                Some(Token::KwLong) => builder.add_long().on_err_context("parse_type_expr", "failed to parse long in type expression")?,
-                Some(Token::KwFloat) => builder
-                    .add_base(BaseType::Float)
-                    .on_err_context("parse_type_expr", "failed to parse float in type expression")?,
-                Some(Token::KwDouble) => builder
-                    .add_base(BaseType::Double)
-                    .on_err_context("parse_type_expr", "failed to parse double in type expression")?,
-                Some(Token::KwSigned) => builder
-                    .add_sign(Sign::Signed)
-                    .on_err_context("parse_type_expr", "failed to parse signed in type expression")?,
-                Some(Token::KwUnsigned) => builder
-                    .add_sign(Sign::Unsigned)
-                    .on_err_context("parse_type_expr", "failed to parse unsigned in type expression")?,
-                Some(Token::KwComplex) => builder
-                    .add_complex(Complex::Complex)
-                    .on_err_context("parse_type_expr", "failed to parse complex in type expression")?,
-                Some(Token::KwImaginary) => builder
-                    .add_complex(Complex::Imaginary)
-                    .on_err_context("parse_type_expr", "failed to parse imaginary in type expression")?,
+                Some(Token::KwLong) => builder
+                    .add_long()
+                    .on_err_context("parse_type_expr", "failed to parse long in type expression")?,
+                Some(Token::KwFloat) => builder.add_base(BaseType::Float).on_err_context(
+                    "parse_type_expr",
+                    "failed to parse float in type expression",
+                )?,
+                Some(Token::KwDouble) => builder.add_base(BaseType::Double).on_err_context(
+                    "parse_type_expr",
+                    "failed to parse double in type expression",
+                )?,
+                Some(Token::KwSigned) => builder.add_sign(Sign::Signed).on_err_context(
+                    "parse_type_expr",
+                    "failed to parse signed in type expression",
+                )?,
+                Some(Token::KwUnsigned) => builder.add_sign(Sign::Unsigned).on_err_context(
+                    "parse_type_expr",
+                    "failed to parse unsigned in type expression",
+                )?,
+                Some(Token::KwComplex) => builder.add_complex(Complex::Complex).on_err_context(
+                    "parse_type_expr",
+                    "failed to parse complex in type expression",
+                )?,
+                Some(Token::KwImaginary) => {
+                    builder.add_complex(Complex::Imaginary).on_err_context(
+                        "parse_type_expr",
+                        "failed to parse imaginary in type expression",
+                    )?
+                }
 
                 // qualifiers
                 Some(token) if let Ok(q) = token.as_type_qualifier() => builder.add_qualifier(q),
@@ -1144,54 +1265,84 @@ impl Parser {
                 // function specifiers
                 Some(Token::KwInline) => builder
                     .add_function_specifier(FunctionSpecifier::Inline)
-                    .on_err_context("parse_type_expr", "failed to parse inline in type expression")?,
+                    .on_err_context(
+                        "parse_type_expr",
+                        "failed to parse inline in type expression",
+                    )?,
                 Some(Token::KwNoreturn) => builder
                     .add_function_specifier(FunctionSpecifier::NoReturn)
-                    .on_err_context("parse_type_expr", "failed to parse noreturn in type expression")?,
+                    .on_err_context(
+                        "parse_type_expr",
+                        "failed to parse noreturn in type expression",
+                    )?,
 
-                // struct/union/enum/_Alignas/_Atomic(T)/typedef identifier
+                // struct/union/enum/typedef identifier
                 Some(tok @ (Token::KwStruct | Token::KwUnion)) => {
                     let clone = tok.clone();
                     self.consumes_token();
-                    let s = self
-                        .parse_struct_or_union()
-                        .on_err_context("parse_type_expr", "failed to parse struct or union in type expression")?;
+                    let s = self.parse_struct_or_union().on_err_context(
+                        "parse_type_expr",
+                        "failed to parse struct or union in type expression",
+                    )?;
                     if clone == Token::KwStruct {
                         builder
                             .set_tagged_or_named(TypeSpec::Struct(s))
-                            .on_err_context("parse_type_expr", "failed to parse struct in type expression")?;
+                            .on_err_context(
+                                "parse_type_expr",
+                                "failed to parse struct in type expression",
+                            )?;
                     } else {
                         builder
                             .set_tagged_or_named(TypeSpec::Union(s))
-                            .on_err_context("parse_type_expr", "failed to parse union in type expression")?;
+                            .on_err_context(
+                                "parse_type_expr",
+                                "failed to parse union in type expression",
+                            )?;
                     }
                     continue;
                 }
                 Some(Token::KwEnum) => {
                     self.consumes_token();
-                    let e = self.parse_enum().on_err_context("parse_type_expr", "failed to parse enum in type expression")?;
+                    let e = self.parse_enum().on_err_context(
+                        "parse_type_expr",
+                        "failed to parse enum in type expression",
+                    )?;
                     builder
                         .set_tagged_or_named(TypeSpec::Enum(e))
-                        .on_err_context("parse_type_expr", "failed to parse enum in type expression")?;
+                        .on_err_context(
+                            "parse_type_expr",
+                            "failed to parse enum in type expression",
+                        )?;
                     continue;
                 }
                 Some(Token::Ident(name)) if self.env.is_typedef(name) => {
                     let name = name.clone();
                     builder
                         .set_tagged_or_named(TypeSpec::Named(name))
-                        .on_err_context("parse_type_expr", "failed to parse typedef in type expression")?;
+                        .on_err_context(
+                            "parse_type_expr",
+                            "failed to parse typedef in type expression",
+                        )?;
                 }
 
                 // _Atomic — qualifier vs specifier decided by following '('
                 Some(Token::KwAtomic) => {
                     self.consumes_token();
                     if self.expect(&Token::LeftParenthesis).is_ok() {
-                        let ty = self.parse_type_name().on_err_context("parse_type_expr", "failed to parse atomic type name")?; // _Atomic(type-name)
+                        let ty = self.parse_type_name().on_err_context(
+                            "parse_type_expr",
+                            "failed to parse atomic type name",
+                        )?; // _Atomic(type-name)
                         builder
                             .set_tagged_or_named(TypeSpec::Atomic(Box::new(ty)))
-                            .on_err_context("parse_type_expr", "failed to parse atomic type in type expression")?;
-                        self.expect(&Token::RightParenthesis)
-                            .on_err_context("parse_type_expr", "failed to parse atomic type expression")?;
+                            .on_err_context(
+                                "parse_type_expr",
+                                "failed to parse atomic type in type expression",
+                            )?;
+                        self.expect(&Token::RightParenthesis).on_err_context(
+                            "parse_type_expr",
+                            "failed to parse atomic type expression",
+                        )?;
                         continue;
                     } else {
                         builder.add_qualifier(TypeQualifier::Atomic);
@@ -1199,17 +1350,23 @@ impl Parser {
                 }
                 Some(Token::KwAlignas) => {
                     self.consumes_token();
-                    let a = self
-                        .parse_alignment_specifier()
-                        .on_err_context("parse_type_expr", "failed to parse alignment specifier in type expression")?;
-                    builder.set_alignment(a).on_err_context("parse_type_expr", "failed to parse alignment in type expression")?;
+                    let a = self.parse_alignment_specifier().on_err_context(
+                        "parse_type_expr",
+                        "failed to parse alignment specifier in type expression",
+                    )?;
+                    builder.set_alignment(a).on_err_context(
+                        "parse_type_expr",
+                        "failed to parse alignment in type expression",
+                    )?;
                     continue;
                 }
                 _ => break,
             }
             self.advance();
         }
-        builder.finish().on_err_context("parse_type_expr", "failed to parse type expression")
+        builder
+            .finish()
+            .on_err_context("parse_type_expr", "failed to parse type expression")
     }
 
     fn parse_type_qualifiers(&mut self) -> Vec<Spanned<TypeQualifier>> {
@@ -1228,11 +1385,14 @@ impl Parser {
         qualifiers
     }
 
-    /// translation_unit := item* EOF
     pub fn parse_translation_unit(&mut self) -> Result<Vec<Item>, ParseError> {
+        self.env.push();
         let mut items: Vec<Item> = Vec::new();
         while !self.at_eof() {
-            items.push(self.parse_item().on_err_context("parse_translation_unit", "failed to parse translation unit")?);
+            items.push(
+                self.parse_item()
+                    .on_err_context("parse_translation_unit", "failed to parse translation unit")?,
+            );
         }
         Ok(items)
     }
@@ -1243,15 +1403,16 @@ impl Parser {
         ))
     }
 
-    /// item := function_def | declaration
     fn parse_item(&mut self) -> Result<Item, ParseError> {
         self.attempt(|p| {
-            Ok(Item::FunctionDef(
-                p.parse_function_def().on_err_context("parse_item", "failed to parse function definition")?,
-            ))
+            Ok(Item::FunctionDef(p.parse_function_def().on_err_context(
+                "parse_item",
+                "failed to parse function definition",
+            )?))
         })
         .or(Ok(Item::Declaration(
-            self.parse_declaration().on_err_context("parse_item", "failed to parse declaration")?,
+            self.parse_declaration()
+                .on_err_context("parse_item", "failed to parse declaration")?,
         )))
     }
 }
@@ -1260,6 +1421,7 @@ impl Parser {
 trait IntoAstSpan {
     fn into_ast(self) -> Span;
 }
+
 impl IntoAstSpan for crate::lexer::token::Span {
     fn into_ast(self) -> Span {
         Span {
@@ -1268,3 +1430,7 @@ impl IntoAstSpan for crate::lexer::token::Span {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "parser_tests.rs"]
+mod tests;

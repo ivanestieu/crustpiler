@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Formatter;
-use itertools::Itertools;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseError {
@@ -28,7 +27,7 @@ impl ParseError {
         self
     }
 
-    pub fn print_span(&self, source : &str) -> () {
+    pub fn print_span(&self, source: &str) -> () {
         if self.span.is_none() {
             return;
         }
@@ -37,10 +36,13 @@ impl ParseError {
         for line in source.lines() {
             if counter + 1 + line.len() >= start {
                 let span_start = start - counter;
-                eprintln!("{}\n{}{} {}", line,
-                          " ".repeat(span_start),
-                          "^".repeat(end-start),
-                          self.base_message);
+                eprintln!(
+                    "{}\n{}{} {}",
+                    line,
+                    " ".repeat(span_start),
+                    "^".repeat(end - start),
+                    self.base_message
+                );
 
                 break;
             }

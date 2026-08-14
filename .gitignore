@@ -19,3 +19,5 @@ target
 
 #produced files
 *.dot
+
+coverage_info.py
