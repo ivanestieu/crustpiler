@@ -323,9 +323,9 @@ impl DotDumper {
             } else {
                 Vec::new()
             };
-            for p in &params {
+            for (i,p) in params.iter().enumerate() {
                 let c = self.param(p);
-                self.edge(id, c, "param");
+                self.edge(id, c, &format!("param{}", i));
             }
             if *variadic {
                 let vid = self.id();
@@ -894,14 +894,14 @@ impl DotDumper {
                 let id = self.id();
                 self.node(id, "sizeof expr", NodeKind::Expr);
                 let c = self.expr(&e.node);
-                self.edge(id, c, "");
+                self.edge(id, c, "operand");
                 id
             }
             Expr::SizeofType(t) => {
                 let id = self.id();
                 self.node(id, "sizeof type", NodeKind::Expr);
                 let c = self.type_name(t);
-                self.edge(id, c, "");
+                self.edge(id, c, "type");
                 id
             }
             Expr::AlignofType(t) => {

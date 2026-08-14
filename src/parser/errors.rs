@@ -34,7 +34,7 @@ impl ParseError {
         let (start, end) = self.span.unwrap();
         let mut counter = 0;
         for line in source.lines() {
-            if counter + 1 + line.len() >= start {
+            if counter + 1 + line.len() > start {
                 let span_start = start - counter;
                 eprintln!(
                     "{}\n{}{} {}",

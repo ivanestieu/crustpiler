@@ -298,13 +298,13 @@ impl TypeExprBuilder {
             return Ok(spec.clone());
         }
         if self.saw_void {
-            if !self.is_void_only() {
+            if self.is_void_only() {
                 return Err("`void` cannot combine with other type specifiers".into());
             }
             return Ok(TypeSpec::Void);
         }
         if self.saw_bool {
-            if !self.is_bool_only() {
+            if self.is_bool_only() {
                 return Err("`_Bool` cannot combine with other type specifiers".into());
             }
             return Ok(TypeSpec::Bool);

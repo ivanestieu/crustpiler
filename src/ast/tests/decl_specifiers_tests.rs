@@ -207,7 +207,7 @@ fn test_add_storage_multiple() {
 fn test_reject_if_tagged_valid() {
     let builder = TypeExprBuilder::new(TypeExprContext::Declaration);
     assert_eq!(
-        builder.reject_if_tagged("test valid"),
+        builder.reject_if_tagged("tests valid"),
         Ok(()),
         "reject_if_tagged_valid failed to set tagged_or_named to Tagged."
     );
@@ -217,9 +217,9 @@ fn test_reject_if_tagged_valid() {
 fn test_reject_if_tagged_invalid() {
     let builder = tagged_builder!();
     assert_eq!(
-        builder.reject_if_tagged("`test invalid`"),
+        builder.reject_if_tagged("`tests invalid`"),
         Err(String::from(
-            "cannot combine `test invalid` with a struct/union/enum/typedef name",
+            "cannot combine `tests invalid` with a struct/union/enum/typedef name",
         )),
         "reject_if_tagged_valid failed to set tagged_or_named to Tagged."
     );

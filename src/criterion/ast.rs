@@ -9,7 +9,7 @@ use crate::ast::statements::Stmt;
 /// A full parsed .c file containing Criterion tests
 #[derive(Debug)]
 pub struct CriterionFile {
-    pub items: Vec<Item>, // non-test C items (helpers, etc.)
+    pub items: Vec<Item>, // non-tests C items (helpers, etc.)
     pub suites: Vec<CriterionSuite>,
 }
 
@@ -31,7 +31,7 @@ pub struct CriterionTest {
     pub span: crate::ast::span::Span,
 }
 
-/// Each item in a test body is either a Criterion assertion or plain C
+/// Each item in a tests body is either a Criterion assertion or plain C
 #[derive(Debug)]
 pub enum CriterionBodyItem {
     Assertion(CriterionAssertion),

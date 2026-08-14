@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "criterion-to-rust"
+name = "crustpiler"
 version = "0.1.0"
 dependencies = [
  "hexf-parse",

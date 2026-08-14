@@ -159,7 +159,7 @@ crustpiler/
 ### Running Tests
 
 ```bash
-cargo test
+cargo tests
 ```
 
 ### Building Documentation
