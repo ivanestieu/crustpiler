@@ -28,7 +28,7 @@ Completed:
 
 Work in progress:
 - **Error Reporting**: Reports lexing errors with position information
-- **Parser**: Recursive descent parser in progress (declarations partially tested, definitions not yet implemented)
+- **Parser**: Recursive descent parser in progress (declarations tested, definitions not yet implemented)
 
 Partially working, needing evolution:
 - **AST Construction**: evolving with bug discoveries
@@ -130,32 +130,6 @@ dot -Tpng file.dot -o file.png
 
 ### Project Structure
 
-```
-crustpiler/
-├── src/
-│   ├── main.rs              # CLI entry point
-│   ├── lib.rs               # Library orchestration
-│   ├── ast/
-│   │   └── ast.rs           # AST node definitions
-│   ├── lexer/
-│   │   ├── mod.rs
-│   │   └── token.rs         # Token types and lexer
-│   ├── parser/
-│   │   ├── mod.rs
-│   │   └── parser.rs        # Recursive descent parser
-│   ├── output/
-│   │   ├── mod.rs
-│   │   └── output.rs        # Rust code generation
-│   ├── literals.rs          # Literal parsing utilities
-│   ├── debug/
-│   │   ├── mod.rs
-│   │   └── dot.rs           # DOT format output
-│   └── criterion.rs         # Criterion-specific utilities
-├── tests/                   # Test suite
-├── Cargo.toml              # Project manifest
-└── README.md               # This file
-```
-
 ### Running Tests
 
 ```bash
@@ -180,10 +154,8 @@ The project is systematically building support for C11 constructs in this order:
 - Floating-point and string literals
 
 ### Parsing (In Progress)
-- **Declarations** (partial): Type specifiers, declarators, basic parameter lists
+- **Declarations**: Type specifiers, declarators, basic parameter lists
 - **Definitions**: Not yet implemented
-- Control flow structures: `if`, `while`, `for`, `switch` (not yet parsed)
-- Expressions and operators (foundation being laid)
 
 ### Code Generation (Planning Phase)
 - Basic type mapping: C primitives → Rust equivalents
