@@ -360,10 +360,12 @@ fn resolve_size(short_count: u32, long_count: u32) -> Result<SizeSpec, String> {
         (0, 1) => Ok(SizeSpec::Long),
         (0, 2) => Ok(SizeSpec::LongLong),
         (s, 0) if s > 1 => Err(format!(
-            "`{}` is too short", "short ".repeat(s as usize).trim_end()
+            "`{}` is too short",
+            "short ".repeat(s as usize).trim_end()
         )),
         (0, l) if l > 2 => Err(format!(
-            "`{}` is too long", "long ".repeat(l as usize).trim_end()
+            "`{}` is too long",
+            "long ".repeat(l as usize).trim_end()
         )),
         _ => Err("`short` and `long` cannot be combined".into()),
     }

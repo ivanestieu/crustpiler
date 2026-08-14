@@ -3,10 +3,10 @@
 // -----------------------------------------------------------------------------
 
 use crate::ast::ast::Expr;
+use crate::ast::decl_specifiers::TypeExpr;
 use crate::ast::declarations::StaticAssert;
 use crate::ast::declarator::Declarator;
 use crate::ast::span::Spanned;
-use crate::ast::types::TypeExpr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructOrUnion {

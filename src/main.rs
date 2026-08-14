@@ -26,7 +26,7 @@ fn process_directory(directory_root: &str) {
                 .map_err(|e| {
                     eprintln!("{}", e);
                 })
-                .ok();
+                .unwrap();
         } else if path.is_dir() && !path.is_symlink() {
             process_directory(path.to_str().unwrap());
         }

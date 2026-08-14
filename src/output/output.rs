@@ -5,12 +5,13 @@
 // =============================================================================
 
 use crate::ast::ast::*;
+use crate::ast::decl_specifiers::TypeExpr;
 use crate::ast::declarations::{
     Decl, Declaration, Designator, InitDeclarator, InitItem, Initializer,
 };
 use crate::ast::declarator::Declarator;
 use crate::ast::operators::{AssignOp, BinaryOp, PostfixOp, UnaryOp};
-use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeExpr, TypeName, TypeSpec};
+use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeName, TypeSpec};
 use itertools::Itertools;
 
 pub trait Output {

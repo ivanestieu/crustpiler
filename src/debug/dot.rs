@@ -323,7 +323,7 @@ impl DotDumper {
             } else {
                 Vec::new()
             };
-            for (i,p) in params.iter().enumerate() {
+            for (i, p) in params.iter().enumerate() {
                 let c = self.param(p);
                 self.edge(id, c, &format!("param{}", i));
             }

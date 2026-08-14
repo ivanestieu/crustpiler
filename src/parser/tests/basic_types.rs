@@ -1,5 +1,9 @@
 use super::*;
-use crate::ast::types::{ArithType, SizeSpec};
+use crate::ast::decl_specifiers::TypeExpr;
+use crate::ast::declarations::{Decl, Declaration, InitDeclarator};
+use crate::ast::declarator::Declarator;
+use crate::ast::span::Spanned;
+use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeSpec};
 
 #[test]
 fn basic_int() {

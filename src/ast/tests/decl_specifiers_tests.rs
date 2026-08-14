@@ -861,11 +861,14 @@ fn test_set_alignment_invalid_context() {
 }
 
 )]
-fn test_resolve_size(parameters : (u32, u32), expected : Result<SizeSpec, String>, test_name : &'static str) {
+fn test_resolve_size(
+    parameters: (u32, u32),
+    expected: Result<SizeSpec, String>,
+    test_name: &'static str,
+) {
     let result = resolve_size(parameters.0, parameters.1);
     assert_eq!(
-        result,
-        expected,
+        result, expected,
         "resolve_size failed for test case: {}",
         test_name
     );
@@ -899,11 +902,14 @@ fn test_resolve_size(parameters : (u32, u32), expected : Result<SizeSpec, String
     "short float",
     "short double"
 })]
-fn test_validate_base_size(parameters : (BaseType, SizeSpec), expected : Result<(), String>, test_name : &'static str) {
+fn test_validate_base_size(
+    parameters: (BaseType, SizeSpec),
+    expected: Result<(), String>,
+    test_name: &'static str,
+) {
     let result = validate_base_size(&parameters.0, &parameters.1);
     assert_eq!(
-        result,
-        expected,
+        result, expected,
         "validate_base_size failed for test case: {}",
         test_name
     );
@@ -929,11 +935,14 @@ fn test_validate_base_size(parameters : (BaseType, SizeSpec), expected : Result<
     "float with no sign"
 }
 )]
-fn test_validate_base_sign(parameters : (BaseType, Option<Sign>), expected : Result<(), String>, test_name : &'static str) {
+fn test_validate_base_sign(
+    parameters: (BaseType, Option<Sign>),
+    expected: Result<(), String>,
+    test_name: &'static str,
+) {
     let result = validate_base_sign(&parameters.0, &parameters.1);
     assert_eq!(
-        result,
-        expected,
+        result, expected,
         "validate_base_sign failed for test case: {}",
         test_name
     );
@@ -959,11 +968,14 @@ fn test_validate_base_sign(parameters : (BaseType, Option<Sign>), expected : Res
     "float with no complex nor imaginary"
 }
 )]
-fn test_validate_base_complex(parameters : (BaseType, Option<Complex>), expected : Result<(), String>, test_name : &'static str) {
+fn test_validate_base_complex(
+    parameters: (BaseType, Option<Complex>),
+    expected: Result<(), String>,
+    test_name: &'static str,
+) {
     let result = validate_base_complex(&parameters.0, &parameters.1);
     assert_eq!(
-        result,
-        expected,
+        result, expected,
         "validate_base_sign failed for test case: {}",
         test_name
     );
@@ -1098,11 +1110,10 @@ fn test_is_bool_only(builder: TypeExprBuilder, expected: bool, test_name: &'stat
 }, test_name = {
 
 })]
-fn test_resolve_type_spec(builder: TypeExprBuilder, expected: Result<TypeSpec, String>, test_name: &'static str) {
-    assert_eq!(
-        builder.resolve_type_spec(),
-        expected,
-        "{}",
-        test_name
-    )
+fn test_resolve_type_spec(
+    builder: TypeExprBuilder,
+    expected: Result<TypeSpec, String>,
+    test_name: &'static str,
+) {
+    assert_eq!(builder.resolve_type_spec(), expected, "{}", test_name)
 }

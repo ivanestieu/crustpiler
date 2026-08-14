@@ -1,4 +1,4 @@
-pub(crate) use crate::ast::decl_specifiers::TypeExpr;
+use crate::ast::decl_specifiers::TypeExpr;
 use crate::ast::declarator::Declarator;
 use crate::ast::enums::EnumSpec;
 use crate::ast::struct_union::StructOrUnion;
@@ -95,48 +95,6 @@ pub enum BaseType {
 pub enum Complex {
     Complex,
     Imaginary,
-}
-impl TypeSpec {
-    pub fn int() -> Self {
-        TypeSpec::Arithmetic(ArithType {
-            sign: None,
-            size: SizeSpec::None,
-            base: BaseType::Int,
-            complex: None,
-        })
-    }
-    pub fn uint() -> Self {
-        TypeSpec::Arithmetic(ArithType {
-            sign: Some(Sign::Unsigned),
-            size: SizeSpec::None,
-            base: BaseType::Int,
-            complex: None,
-        })
-    }
-    pub fn char_() -> Self {
-        TypeSpec::Arithmetic(ArithType {
-            sign: None,
-            size: SizeSpec::None,
-            base: BaseType::Char,
-            complex: None,
-        })
-    }
-    pub fn double() -> Self {
-        TypeSpec::Arithmetic(ArithType {
-            sign: None,
-            size: SizeSpec::None,
-            base: BaseType::Double,
-            complex: None,
-        })
-    }
-    pub fn float_() -> Self {
-        TypeSpec::Arithmetic(ArithType {
-            sign: None,
-            size: SizeSpec::None,
-            base: BaseType::Float,
-            complex: None,
-        })
-    }
 }
 
 impl ArithType {

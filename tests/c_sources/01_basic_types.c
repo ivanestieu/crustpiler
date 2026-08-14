@@ -1,6 +1,6 @@
 /* 01_basic_types.c — arithmetic type specifier axes */
 int a;
-unsigned unsigned int b;
+unsigned int b;
 unsigned c;              /* bare unsigned -> unsigned int */
 signed char d;
 unsigned char e;
