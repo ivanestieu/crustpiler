@@ -214,10 +214,9 @@ impl Parser {
         // K & R params
         let mut old_style_params = Vec::new();
         while self.expect(&Token::RightParenthesis).is_err()
-            && let Some(Token::Ident(name)) = self.peek()
+            && let Ok(name) = self.expect_identifier()
         {
-            old_style_params.push(Expr::Ident(name.clone()));
-            self.advance();
+            old_style_params.push(Expr::Ident(name));
         }
         if !old_style_params.is_empty() {
             return Ok(old_style_params);
@@ -364,10 +363,8 @@ impl Parser {
         &mut self,
     ) -> Result<Declarator, ParseError> {
         let mut base = match self.peek() {
-            Some(Token::Ident(name)) if !Mode::IS_ABSTRACT => {
-                let ident = name.clone();
-                self.consumes_token();
-                Declarator::Ident(ident)
+            Some(Token::Ident(_)) if !Mode::IS_ABSTRACT => {
+                Declarator::Ident(self.expect_identifier()?)
             }
             Some(Token::LeftBracket) if Mode::IS_ABSTRACT => self
                 .parse_array_suffix::<Abstract>(Declarator::Abstract)

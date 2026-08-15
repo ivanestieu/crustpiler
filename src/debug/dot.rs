@@ -183,7 +183,7 @@ impl DotDumper {
         self.edge(id, d, "declarator");
 
         for p in &f.old_style_params {
-            let c = self.decl(p);
+            let c = self.declaration(p);
             self.edge(id, c, "old_style_param");
         }
 
@@ -737,7 +737,7 @@ impl DotDumper {
 
     fn block_item(&mut self, b: &BlockItem) -> usize {
         match b {
-            BlockItem::Decl(d) => self.declaration(&d.node),
+            BlockItem::Decl(d) => self.declaration(&d),
             BlockItem::Stmt(s) => self.stmt(&s.node),
         }
     }
@@ -750,7 +750,7 @@ impl DotDumper {
                 id
             }
             ForInit::Expr(e) => self.expr(&e.node),
-            ForInit::Decl(d) => self.declaration(&d.node),
+            ForInit::Decl(d) => self.declaration(&d),
         }
     }
 

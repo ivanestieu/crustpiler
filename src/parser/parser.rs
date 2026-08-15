@@ -61,6 +61,28 @@ impl Parser {
         tok
     }
 
+    pub(super) fn expect_identifier(&mut self) -> Result<String, ParseError> {
+        match self.peek() {
+            Some(Token::Ident(_)) => {
+                let Some(SpannedToken {
+                    token: Token::Ident(identifier),
+                    ..
+                }) = self.advance()
+                else {
+                    unreachable!()
+                };
+                Ok(identifier)
+            }
+            other => Err(parse_error!(
+                "Expected identifier, found: {:?} @ {}..{}",
+                other,
+                self.peek_span().start,
+                self.peek_span().end
+            )
+            .span(self.peek_span().start, self.peek_span().end)),
+        }
+    }
+
     /// Rename of advance for understanding purposes
     #[inline]
     pub(super) fn consumes_token(&mut self) -> () {
@@ -103,10 +125,12 @@ impl Parser {
 
     fn parse_item(&mut self) -> Result<Item, ParseError> {
         self.attempt(|p| {
-            Ok(Item::FunctionDef(p.parse_function_def().on_err_context(
-                "parse_item",
-                "failed to parse function definition",
-            )?))
+            Ok(Item::FunctionDef(
+                p.parse_function_definition()
+                    .on_err_context("parse_item", "failed to parse function definition").map_err(
+                    |e| { eprintln!("{}", e); e }
+                )?,
+            ))
         })
         .or_else(|_| {
             Ok(Item::Declaration(self.parse_declaration().on_err_context(

@@ -2,9 +2,8 @@
 // main.rs — pipeline: source → logos lexer → recursive-descent parser → output
 // =============================================================================
 fn process_directory(directory_root: &str) {
-    println!("directory_root:{}", directory_root);
     if std::path::Path::new(directory_root).is_file() {
-        println!("Processing file: {:?}", directory_root);
+        println!("Processing file: {}", directory_root.to_string());
         crustpiler::run(directory_root.to_string())
             .map_err(|e| {
                 eprintln!("{}", e);
@@ -12,6 +11,7 @@ fn process_directory(directory_root: &str) {
             .ok();
         return;
     }
+    println!("directory_root:{}", directory_root);
     for entry in std::fs::read_dir(directory_root).expect("Failed to read directory.") {
         let entry = entry.expect("Failed to read directory entry.");
         let path = entry.path();
@@ -21,7 +21,7 @@ fn process_directory(directory_root: &str) {
                 .map(|s| s == "c" || s == "h")
                 .unwrap_or(false)
         {
-            println!("Processing file: {:?}", path);
+            println!("Processing file: {}", path.to_str().unwrap());
             crustpiler::run(path.to_str().unwrap().to_string())
                 .map_err(|e| {
                     eprintln!("{}", e);

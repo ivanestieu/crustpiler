@@ -185,23 +185,18 @@ impl Parser {
                 Some(tok @ (Token::Dot | Token::PtrOp)) => {
                     let arrow = tok == &Token::PtrOp;
                     self.consumes_token();
-                    let identifier = self.peek();
-                    if let Some(Token::Ident(name)) = identifier {
-                        base = Spanned {
+                    let identifier = self.expect_identifier().on_err_context(
+                        "parse_postfix_expr",
+                        "expected identifier after member operator"
+                    )?;
+                    base = Spanned {
                             node: Expr::Member {
                                 expr: Box::new(base),
-                                field: name.clone(),
+                                field: identifier,
                                 arrow,
                             },
                             span: start.merge(&self.prev_span()),
-                        };
-                        self.consumes_token();
-                    } else {
-                        return Err(parse_error!(
-                            "Postfix expression: Expected identifier, found {:?}",
-                            identifier
-                        ));
-                    }
+                    };
                 }
                 Some(tok @ (Token::IncOp | Token::DecOp)) => {
                     let inc_op = if tok == &Token::IncOp {
@@ -451,7 +446,7 @@ impl Parser {
         Ok(lhs)
     }
 
-    fn parse_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
+    pub(super) fn parse_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
         let start = self.peek_span();
         let mut lhs = self
             .parse_assignment_expr()

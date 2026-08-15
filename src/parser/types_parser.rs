@@ -13,12 +13,7 @@ use crate::parser::parser::Parser;
 
 impl Parser {
     fn parse_enum(&mut self) -> Result<EnumSpec, ParseError> {
-        let name = if let Some(Token::Ident(iden)) = self.peek() {
-            Some(iden.clone())
-        } else {
-            None
-        };
-        self.consumes_token();
+        let name = self.expect_identifier().ok();
         if self.expect(&Token::LeftBrace).is_err() {
             if name.is_some() {
                 return Ok(EnumSpec {
@@ -34,13 +29,9 @@ impl Parser {
         }
         let mut variants = Vec::new();
         while self.expect(&Token::RightBrace).is_err() {
-            let variant_name = match self.advance() {
-                Some(SpannedToken {
-                    token: Token::Ident(name),
-                    ..
-                }) => name,
-                other => return Err(parse_error!("Enum: Expected identifier, found {:?}", other)),
-            };
+            let variant_name = self.expect_identifier().on_err_context(
+                "parse_enum",
+                "expected identifier for enum variant")?;
             let variant_value = if self.expect(&Token::Equals).is_ok() {
                 Some(Box::new(
                     self.parse_conditional_expr()
@@ -145,7 +136,14 @@ impl Parser {
                 )?,
                 Some(Token::KwInt) => builder
                     .add_base(BaseType::Int)
-                    .on_err_context("parse_type_expr", "failed to parse int in type expression")?,
+                    .map_err(|e| {
+                        parse_error!("{} @ {}..{}", e, start, self.peek_span().end)
+                            .span(start, self.prev_span().end)
+                    })
+                    .on_err_context(
+                        "parse_type_expr",
+                        "failed to parse int in type expression",
+                    )?,
                 Some(Token::KwLong) => builder
                     .add_long()
                     .on_err_context("parse_type_expr", "failed to parse long in type expression")?,
@@ -201,13 +199,13 @@ impl Parser {
 
                 // struct/union/enum/typedef identifier
                 Some(tok @ (Token::KwStruct | Token::KwUnion)) => {
-                    let clone = tok.clone();
+                    let is_struct = tok == &Token::KwStruct;
                     self.consumes_token();
                     let s = self.parse_struct_or_union().on_err_context(
                         "parse_type_expr",
                         "failed to parse struct or union in type expression",
                     )?;
-                    if clone == Token::KwStruct {
+                    if is_struct {
                         builder
                             .set_tagged_or_named(TypeSpec::Struct(s))
                             .on_err_context(
@@ -239,13 +237,14 @@ impl Parser {
                     continue;
                 }
                 Some(Token::Ident(name)) if self.env.is_typedef(name) => {
-                    let name = name.clone();
+                    let name = self.expect_identifier()?;
                     builder
                         .set_tagged_or_named(TypeSpec::Named(name))
                         .on_err_context(
                             "parse_type_expr",
                             "failed to parse typedef in type expression",
                         )?;
+                    continue;
                 }
 
                 // _Atomic — qualifier vs specifier decided by following '('

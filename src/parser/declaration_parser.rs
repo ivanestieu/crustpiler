@@ -123,12 +123,7 @@ impl Parser {
     }
 
     pub(super) fn parse_struct_or_union(&mut self) -> Result<StructOrUnion, ParseError> {
-        let name = if let Some(Token::Ident(iden)) = self.peek() {
-            Some(iden.clone())
-        } else {
-            None
-        };
-        self.consumes_token();
+        let name = self.expect_identifier().ok();
         if self.expect(&Token::LeftBrace).is_err() {
             if name.is_some() {
                 return Ok(StructOrUnion { name, fields: None });
