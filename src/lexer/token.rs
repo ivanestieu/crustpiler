@@ -35,6 +35,9 @@ use logos::Logos;
 #[logos(skip r"[ \t\r\n\f]+")] // skip whitespace
 #[logos(skip(r"/\*([^*]|\*+[^*/])*\*+/"))]
 pub enum Token {
+    #[regex(r"#(?:\\[\r\n]|[^\r\n])*", logos::skip)]
+    PreprocessorDirective,
+
     // ── Keywords ──────────────────────────────────────────
     #[token("auto")]
     KwAuto,
