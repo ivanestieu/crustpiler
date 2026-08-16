@@ -1,22 +1,21 @@
+use crate::ast::function_def::FunctionDef;
+use crate::output::output::Output;
+use itertools::Itertools;
+
 // -----------------------------------------------------------------------------
 // FUNCTION DEFINITION
 // -----------------------------------------------------------------------------
+impl Output for FunctionDef {
+    fn as_c_repr(&self) -> String {
+        format!("{} {}\n{}{{\n{}\n}}",
+            self.ret.as_c_repr(),
+            self.declarator.as_c_repr(),
+            self.old_style_params.iter().map(|p| p.as_c_repr()).join("\n"),
+            self.body.iter().map(|b| b.as_c_repr()).join("\n")
+        )
+    }
 
-use crate::ast::decl_specifiers::TypeExpr;
-use crate::ast::declarations::Declaration;
-use crate::ast::declarator::Declarator;
-use crate::ast::statements::BlockItem;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct FunctionDef {
-    pub ret: TypeExpr,
-    pub declarator: Declarator, // encodes name + params
-    pub old_style_params: Vec<Declaration>,
-    pub body: Vec<BlockItem>,
-}
-
-impl FunctionDef {
-    pub fn name(&self) -> Option<&str> {
-        self.declarator.ident()
+    fn as_rust_repr(&self) -> String {
+        todo!()
     }
 }

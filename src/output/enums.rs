@@ -2,16 +2,50 @@
 // ENUM
 // -----------------------------------------------------------------------------
 
-use crate::ast::ast::Expr;
+use crate::ast::enums::{EnumSpec, Enumerator};
+use crate::output::output::Output;
+use itertools::Itertools;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct EnumSpec {
-    pub name: Option<String>,
-    pub variants: Option<Vec<Enumerator>>,
+impl Output for EnumSpec {
+    fn as_c_repr(&self) -> String {
+        let mut output = String::from("enum ");
+        if self.name.is_some() {
+            output += self.name.as_ref().unwrap();
+            output += " ";
+        };
+        output += "{\n";
+        if self.variants.is_some() {
+            output += &self
+                .variants
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_c_repr())
+                .join(",\n");
+        };
+        output += "}";
+        output
+    }
+
+    fn as_rust_repr(&self) -> String {
+        todo!()
+    }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Enumerator {
-    pub name: String,
-    pub value: Option<Box<Expr>>, // explicit = value
+impl Output for Enumerator {
+    fn as_c_repr(&self) -> String {
+        format!(
+            "    {}{}",
+            self.name,
+            if self.value.is_some() {
+                format!(" = {}", self.value.as_ref().unwrap().as_c_repr())
+            } else {
+                String::new()
+            }
+        )
+    }
+
+    fn as_rust_repr(&self) -> String {
+        todo!()
+    }
 }

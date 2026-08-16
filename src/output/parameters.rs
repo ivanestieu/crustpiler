@@ -2,11 +2,19 @@
 // PARAMETERS
 // -----------------------------------------------------------------------------
 
-use crate::ast::decl_specifiers::TypeExpr;
-use crate::ast::declarator::Declarator;
+use crate::ast::parameters::ParamDecl;
+use crate::output::output::Output;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ParamDecl {
-    pub specifiers: TypeExpr,
-    pub declarator: Declarator, // may be Abstract for unnamed params
+impl Output for ParamDecl {
+    fn as_c_repr(&self) -> String {
+        format!(
+            "{} {}",
+            self.specifiers.as_c_repr(),
+            self.declarator.as_c_repr()
+        )
+    }
+
+    fn as_rust_repr(&self) -> String {
+        todo!()
+    }
 }
