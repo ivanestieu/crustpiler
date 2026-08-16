@@ -1,1 +1,12 @@
+mod ast;
+mod decl_specifiers;
+mod declarations;
+mod declarator;
+mod enums;
+mod function_def;
+mod operators;
 pub mod output;
+mod parameters;
+mod statements;
+mod struct_union;
+mod types;

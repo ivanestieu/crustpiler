@@ -1,44 +1,68 @@
 // =============================================================================
 // main.rs — pipeline: source → logos lexer → recursive-descent parser → output
 // =============================================================================
-fn process_directory(directory_root: &str) {
-    if std::path::Path::new(directory_root).is_file() {
-        println!("Processing file: {}", directory_root.to_string());
-        crustpiler::run(directory_root.to_string())
-            .map_err(|e| {
-                eprintln!("{}", e);
-            })
-            .ok();
+
+/// Process a file or directory (recursively)
+fn process_path(path: &str, options: &crustpiler::ProgramOptions) {
+    let path_obj = std::path::Path::new(path);
+
+    if path_obj.is_file() {
+        println!("Processing file: {}", path);
+        if let Err(e) = crustpiler::run(path_obj, options) {
+            eprintln!("Error processing {}: {}", path, e);
+        }
         return;
     }
-    println!("directory_root:{}", directory_root);
-    for entry in std::fs::read_dir(directory_root).expect("Failed to read directory.") {
-        let entry = entry.expect("Failed to read directory entry.");
-        let path = entry.path();
-        if path.is_file()
-            && path
-                .extension()
-                .map(|s| s == "c" || s == "h")
-                .unwrap_or(false)
-        {
-            println!("Processing file: {}", path.to_str().unwrap());
-            crustpiler::run(path.to_str().unwrap().to_string())
-                .map_err(|e| {
-                    eprintln!("{}", e);
-                })
-                .unwrap();
-        } else if path.is_dir() && !path.is_symlink() {
-            process_directory(path.to_str().unwrap());
+
+    /* if path_obj.is_dir() {
+        println!("Processing directory: {}", path);
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let entry_path = entry.path();
+                    if entry_path.is_file()
+                        && entry_path
+                            .extension()
+                            .map(|s| s == "c" || s == "h")
+                            .unwrap_or(false)
+                    {
+                        process_path(entry_path.to_str().unwrap(), options);
+                    } else if entry_path.is_dir() && !entry_path.is_symlink() {
+                        process_path(entry_path.to_str().unwrap(), options);
+                    }
+                }
+            }
         }
-    }
+        return;
+    }*/
+
+    eprintln!("Path not found: {}", path);
 }
 
 fn main() {
-    if std::env::args().len() < 2 {
-        eprintln!("Usage: criterion-to-rust <directory-root>");
-        std::process::exit(1);
+    let args = std::env::args();
+
+    let options = match crustpiler::ProgramOptions::parse(args) {
+        Ok(opts) => opts,
+        Err(msg) => {
+            if msg == "help" {
+                crustpiler::ProgramOptions::print_help();
+            } else {
+                eprintln!("Error: {}", msg);
+                crustpiler::ProgramOptions::print_help();
+            }
+            std::process::exit(1);
+        }
+    };
+
+    if let Some(ref dir) = options.output_dir {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("Failed to create output directory '{}': {}", dir, e);
+            std::process::exit(1);
+        }
     }
-    std::env::args()
-        .skip(1)
-        .for_each(|arg| process_directory(&arg));
+
+    for input in &options.input_files {
+        process_path(input, &options);
+    }
 }
