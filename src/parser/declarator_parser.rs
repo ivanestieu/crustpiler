@@ -349,16 +349,6 @@ impl Parser {
         })
     }
 
-    #[inline]
-    pub(super) fn parse_direct_declarator(&mut self) -> Result<Declarator, ParseError> {
-        self.parse_direct_declarator_impl::<Concrete>()
-    }
-
-    #[inline]
-    pub(super) fn parse_direct_abstract_declarator(&mut self) -> Result<Declarator, ParseError> {
-        self.parse_direct_declarator_impl::<Abstract>()
-    }
-
     fn parse_direct_declarator_impl<Mode: DeclaratorMode>(
         &mut self,
     ) -> Result<Declarator, ParseError> {

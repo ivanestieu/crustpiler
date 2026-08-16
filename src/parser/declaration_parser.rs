@@ -1,6 +1,5 @@
 use crate::ast::decl_specifiers::TypeExprContext;
 use crate::ast::declarations::{Decl, Declaration, InitDeclarator, StaticAssert};
-use crate::ast::declarator::Declarator;
 use crate::ast::span::Spanned;
 use crate::ast::struct_union::{FieldDecl, StructMember, StructOrUnion};
 use crate::lexer::token::Token;
@@ -81,8 +80,8 @@ impl Parser {
 
         if type_expr.is_typedef() {
             declarators.iter().for_each(|init_decl| {
-                if let Ok(ident) = extract_identifier(&init_decl.declarator) {
-                    self.env.define_typedef(ident);
+                if let Some(ident) = init_decl.declarator.ident() {
+                    self.env.define_typedef(String::from(ident));
                 }
             });
         }
@@ -145,14 +144,5 @@ impl Parser {
             name,
             fields: Some(fields),
         })
-    }
-}
-fn extract_identifier(declarator: &Declarator) -> Result<String, ParseError> {
-    match declarator {
-        Declarator::Ident(name) => Ok(name.clone()),
-        Declarator::Pointer { inner, .. }
-        | Declarator::Array { inner, .. }
-        | Declarator::Function { inner, .. } => extract_identifier(inner),
-        _ => Err(parse_error!("Expected identifier, found {:?}", declarator)),
     }
 }

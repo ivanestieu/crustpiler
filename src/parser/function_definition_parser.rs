@@ -46,15 +46,15 @@ impl Parser {
             Some(Token::SemiColon) => {
                 self.consumes_token();
                 Ok(Stmt::Empty)
-            },
+            }
             _ => {
                 let result = Ok(Stmt::Expr(self.parse_expr()?));
                 self.expect(&Token::SemiColon).on_err_context(
                     "parse_expression_statmeent",
-                    "an expression statement must end with a `;`"
+                    "an expression statement must end with a `;`",
                 )?;
                 result
-            },
+            }
         }
     }
 
@@ -256,14 +256,14 @@ impl Parser {
         };
         self.expect(&Token::SemiColon).on_err_context(
             "parse_jump_statement",
-            "expected semi colon to end jump statement"
+            "expected semi colon to end jump statement",
         )?;
         Ok(jump)
     }
 
     fn parse_statement(&mut self) -> Result<Spanned<Stmt>, ParseError> {
         let start = self.peek_span().start;
-        let mut stmt = self.attempt(|p|p.parse_labeled_statement());
+        let mut stmt = self.attempt(|p| p.parse_labeled_statement());
         if stmt.is_err() {
             stmt = self.parse_compound_statement().map(|cs| Stmt::Block(cs));
         }

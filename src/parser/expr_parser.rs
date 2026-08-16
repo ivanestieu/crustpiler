@@ -187,15 +187,15 @@ impl Parser {
                     self.consumes_token();
                     let identifier = self.expect_identifier().on_err_context(
                         "parse_postfix_expr",
-                        "expected identifier after member operator"
+                        "expected identifier after member operator",
                     )?;
                     base = Spanned {
-                            node: Expr::Member {
-                                expr: Box::new(base),
-                                field: identifier,
-                                arrow,
-                            },
-                            span: start.merge(&self.prev_span()),
+                        node: Expr::Member {
+                            expr: Box::new(base),
+                            field: identifier,
+                            arrow,
+                        },
+                        span: start.merge(&self.prev_span()),
                     };
                 }
                 Some(tok @ (Token::IncOp | Token::DecOp)) => {

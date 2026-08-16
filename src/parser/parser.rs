@@ -127,9 +127,11 @@ impl Parser {
         self.attempt(|p| {
             Ok(Item::FunctionDef(
                 p.parse_function_definition()
-                    .on_err_context("parse_item", "failed to parse function definition").map_err(
-                    |e| { eprintln!("{}", e); e }
-                )?,
+                    .on_err_context("parse_item", "failed to parse function definition")
+                    .map_err(|e| {
+                        eprintln!("{}", e);
+                        e
+                    })?,
             ))
         })
         .or_else(|_| {

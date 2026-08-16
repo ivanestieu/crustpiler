@@ -6,7 +6,7 @@ use crate::ast::types::{
     AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, TypeName,
     TypeQualifier, TypeSpec,
 };
-use crate::lexer::token::{SpannedToken, Token};
+use crate::lexer::token::Token;
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
@@ -29,9 +29,9 @@ impl Parser {
         }
         let mut variants = Vec::new();
         while self.expect(&Token::RightBrace).is_err() {
-            let variant_name = self.expect_identifier().on_err_context(
-                "parse_enum",
-                "expected identifier for enum variant")?;
+            let variant_name = self
+                .expect_identifier()
+                .on_err_context("parse_enum", "expected identifier for enum variant")?;
             let variant_value = if self.expect(&Token::Equals).is_ok() {
                 Some(Box::new(
                     self.parse_conditional_expr()
@@ -140,10 +140,7 @@ impl Parser {
                         parse_error!("{} @ {}..{}", e, start, self.peek_span().end)
                             .span(start, self.prev_span().end)
                     })
-                    .on_err_context(
-                        "parse_type_expr",
-                        "failed to parse int in type expression",
-                    )?,
+                    .on_err_context("parse_type_expr", "failed to parse int in type expression")?,
                 Some(Token::KwLong) => builder
                     .add_long()
                     .on_err_context("parse_type_expr", "failed to parse long in type expression")?,
