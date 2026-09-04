@@ -43,7 +43,8 @@ impl Output for StructMember {
 
 impl Output for FieldDecl {
     fn as_c_repr(&self) -> String {
-        format!("{} {}",
+        format!(
+            "{} {}",
             self.type_expr.as_c_repr(),
             self.declarators.iter().map(|fd| fd.as_c_repr()).join(", ")
         )
@@ -63,10 +64,7 @@ impl Output for FieldDeclarator {
                 bit_width.node.as_c_repr()
             ),
             (Some(declarator), None) => declarator.as_c_repr(),
-            (None, Some(bit_width)) => format!(
-                ": {}",
-                bit_width.node.as_c_repr()
-            ),
+            (None, Some(bit_width)) => format!(": {}", bit_width.node.as_c_repr()),
             _ => panic!("This state should not exists."), // Make this state impossible at compile time
         }
     }

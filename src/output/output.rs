@@ -4,10 +4,10 @@
 //   int x = 1;   →   let x: i32 = 1;
 // =============================================================================
 
-use itertools::Itertools;
 use crate::ast::ast::*;
 use crate::ast::declarations::Declaration;
 use crate::ast::declarator::Declarator;
+use itertools::Itertools;
 
 pub trait Output {
     fn as_c_repr(&self) -> String;

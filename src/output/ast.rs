@@ -1,6 +1,6 @@
-use itertools::Itertools;
 use crate::ast::ast::{Expr, GenericAssoc, Item};
 use crate::output::output::Output;
+use itertools::Itertools;
 
 // -----------------------------------------------------------------------------
 // EXPRESSIONS
@@ -20,7 +20,11 @@ impl Output for Expr {
             Expr::Ident(name) => name.clone(),
 
             // Compound literal: (Type){init}
-            Expr::CompoundLit { type_name, init} => format!("({}){{{}}}", type_name.as_c_repr(), init.iter().map(|i| i.as_c_repr()).join(", ")),
+            Expr::CompoundLit { type_name, init } => format!(
+                "({}){{{}}}",
+                type_name.as_c_repr(),
+                init.iter().map(|i| i.as_c_repr()).join(", ")
+            ),
             // Unary prefix
             Expr::UnaryOp { op, operand } => {
                 format!("{}{}", op.as_c_repr(), &operand.node.as_c_repr())
@@ -46,33 +50,33 @@ impl Output for Expr {
                 &rhs.node.as_c_repr()
             ),
             // Ternary
-            Expr::Ternary {cond, then, els } => format!("{} ? {} : {}",
+            Expr::Ternary { cond, then, els } => format!(
+                "{} ? {} : {}",
                 cond.node.as_c_repr(),
                 then.node.as_c_repr(),
                 els.node.as_c_repr()
             ),
             // Function call
-            Expr::Call { callee, args} => format!("{}({})",
+            Expr::Call { callee, args } => format!(
+                "{}({})",
                 callee.node.as_c_repr(),
                 args.iter().map(|arg| arg.node.as_c_repr()).join(", ")
             ),
             // Subscript: array[index]
-            Expr::Index { array, index } => format!("{}[{}]",
-                array.node.as_c_repr(),
-                index.node.as_c_repr()
-            ),
+            Expr::Index { array, index } => {
+                format!("{}[{}]", array.node.as_c_repr(), index.node.as_c_repr())
+            }
             // Member access: expr.field  or  expr->field
-            Expr::Member { expr, field, arrow } => format!("{}{}{}",
+            Expr::Member { expr, field, arrow } => format!(
+                "{}{}{}",
                 expr.node.as_c_repr(),
                 if *arrow { "->" } else { "." },
                 field
             ),
             // Cast: (Type)expr
-            Expr::Cast { type_name, expr } => format!(
-                "({}){}",
-                &expr.node.as_c_repr(),
-                type_name.as_c_repr()
-            ),
+            Expr::Cast { type_name, expr } => {
+                format!("({}){}", &expr.node.as_c_repr(), type_name.as_c_repr())
+            }
 
             // sizeof
             Expr::SizeofExpr(e) => format!("sizeof {}", &e.node.as_c_repr()),
@@ -80,16 +84,18 @@ impl Output for Expr {
             // _Alignof
             Expr::AlignofType(ty) => format!("_Alignof({})", ty.as_c_repr()),
             // _Generic
-            Expr::Generic { controlling, associated } => format!("_Generic({}, {})",
+            Expr::Generic {
+                controlling,
+                associated,
+            } => format!(
+                "_Generic({}, {})",
                 controlling.node.as_c_repr(),
                 associated.iter().map(|a| a.as_c_repr()).join(", ")
             ),
             // Comma operator: a, b  (lowest precedence)
-            Expr::Comma(left, right) => format!(
-                "{}, {}",
-                left.node.as_c_repr(),
-                right.node.as_c_repr()
-            ),
+            Expr::Comma(left, right) => {
+                format!("{}, {}", left.node.as_c_repr(), right.node.as_c_repr())
+            }
         }
     }
 

@@ -35,25 +35,23 @@ impl Output for TypeSpec {
 impl Output for ArithType {
     fn as_c_repr(&self) -> String {
         match (&self.size, &self.sign, &self.complex) {
-            (SizeSpec::None, Some(sign), None) => format!("{} {}",
-                sign.as_c_repr(),
-                self.base.as_c_repr()
-            ),
-            (size_spec, Some(sign), None) => format!("{} {} {}",
+            (SizeSpec::None, Some(sign), None) => {
+                format!("{} {}", sign.as_c_repr(), self.base.as_c_repr())
+            }
+            (size_spec, Some(sign), None) => format!(
+                "{} {} {}",
                 sign.as_c_repr(),
                 size_spec.as_c_repr(),
                 self.base.as_c_repr()
             ),
             (SizeSpec::None, None, None) => self.base.as_c_repr(),
-            (size_spec, None, None) => format!("{} {}",
-                size_spec.as_c_repr(),
-                self.base.as_c_repr()
-            ),
-            (SizeSpec::None, None, Some(complex)) => format!("{} {}",
-                complex.as_c_repr(),
-                self.base.as_c_repr()
-            ),
-            _ => panic!("this state should not exists.")
+            (size_spec, None, None) => {
+                format!("{} {}", size_spec.as_c_repr(), self.base.as_c_repr())
+            }
+            (SizeSpec::None, None, Some(complex)) => {
+                format!("{} {}", complex.as_c_repr(), self.base.as_c_repr())
+            }
+            _ => panic!("this state should not exists."),
         }
     }
 
@@ -134,8 +132,9 @@ impl Output for Sign {
     fn as_c_repr(&self) -> String {
         match self {
             Sign::Signed => "signed",
-            Sign::Unsigned => "unsigned"
-        }.to_string()
+            Sign::Unsigned => "unsigned",
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {
@@ -150,7 +149,8 @@ impl Output for SizeSpec {
             SizeSpec::None => "",
             SizeSpec::Long => "long",
             SizeSpec::LongLong => "long long",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {
@@ -160,12 +160,13 @@ impl Output for SizeSpec {
 
 impl Output for BaseType {
     fn as_c_repr(&self) -> String {
-       match self {
-           BaseType::Int => "int",
-           BaseType::Char => "char",
-           BaseType::Float => "float",
-           BaseType::Double => "double"
-       }.to_string()
+        match self {
+            BaseType::Int => "int",
+            BaseType::Char => "char",
+            BaseType::Float => "float",
+            BaseType::Double => "double",
+        }
+        .to_string()
     }
 
     fn as_rust_repr(&self) -> String {

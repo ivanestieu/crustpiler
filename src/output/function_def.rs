@@ -7,10 +7,14 @@ use itertools::Itertools;
 // -----------------------------------------------------------------------------
 impl Output for FunctionDef {
     fn as_c_repr(&self) -> String {
-        format!("{} {}\n{}{{\n{}\n}}",
+        format!(
+            "{} {}\n{}{{\n{}\n}}",
             self.ret.as_c_repr(),
             self.declarator.as_c_repr(),
-            self.old_style_params.iter().map(|p| p.as_c_repr()).join("\n"),
+            self.old_style_params
+                .iter()
+                .map(|p| p.as_c_repr())
+                .join("\n"),
             self.body.iter().map(|b| b.as_c_repr()).join("\n")
         )
     }

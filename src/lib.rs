@@ -6,12 +6,12 @@ pub mod literals;
 pub mod output;
 pub mod parser;
 
-use std::path::Path;
 use crate::ast::ast::Item;
 use crate::lexer::token;
 use crate::lexer::token::SpannedToken;
 use crate::output::output::Output;
 use crate::parser::parser::Parser;
+use std::path::Path;
 
 pub fn run(file_path: &Path, options: &ProgramOptions) -> Result<(), String> {
     let source: &str = &*std::fs::read_to_string(file_path)
@@ -50,7 +50,8 @@ impl OutputTarget {
         match self {
             OutputTarget::Stdout => println!("{}", content),
             OutputTarget::File(dir_name) => {
-                std::fs::write(format!("{}/{}", dir_name, filename), content).expect("Failed to write to file");
+                std::fs::write(format!("{}/{}", dir_name, filename), content)
+                    .expect("Failed to write to file");
             }
         }
     }
@@ -148,19 +149,18 @@ impl ProgramOptions {
         }
 
         // If output_dir is set, convert Stdout targets to File targets
-        let (dump_tokens, dump_ast, dump_rust, dump_c, dump_source) = if let Some(ref dir) =
-            output_dir
-        {
-            (
-                dump_tokens.map(|_| OutputTarget::File(format!("{}", dir))),
-                dump_ast.map(|_| OutputTarget::File(format!("{}", dir))),
-                dump_rust.map(|_| OutputTarget::File(format!("{}", dir))),
-                dump_c.map(|_| OutputTarget::File(format!("{}", dir))),
-                dump_source.map(|_| OutputTarget::File(format!("{}", dir))),
-            )
-        } else {
-            (dump_tokens, dump_ast, dump_rust, dump_c, dump_source)
-        };
+        let (dump_tokens, dump_ast, dump_rust, dump_c, dump_source) =
+            if let Some(ref dir) = output_dir {
+                (
+                    dump_tokens.map(|_| OutputTarget::File(format!("{}", dir))),
+                    dump_ast.map(|_| OutputTarget::File(format!("{}", dir))),
+                    dump_rust.map(|_| OutputTarget::File(format!("{}", dir))),
+                    dump_c.map(|_| OutputTarget::File(format!("{}", dir))),
+                    dump_source.map(|_| OutputTarget::File(format!("{}", dir))),
+                )
+            } else {
+                (dump_tokens, dump_ast, dump_rust, dump_c, dump_source)
+            };
 
         Ok(ProgramOptions {
             input_files,
@@ -185,7 +185,7 @@ impl ProgramOptions {
         }
     }
 
-    pub fn print_ast(&self, dot: &str, path : &Path) {
+    pub fn print_ast(&self, dot: &str, path: &Path) {
         if let Some(ref target) = self.dump_ast {
             target.write(dot, &format!("{}.ast.dot", stem_or_debug!(path)));
         }
