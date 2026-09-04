@@ -4,7 +4,7 @@ use crate::ast::declarations::Declaration;
 use crate::ast::function_def::FunctionDef;
 use crate::ast::span::{Span, Spanned};
 use crate::ast::statements::{BlockItem, ForInit, Stmt};
-use crate::lexer::token::{SpannedToken, Token};
+use crate::lexer::token::Token;
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
@@ -289,7 +289,6 @@ impl Parser {
     }
 
     fn parse_block_item(&mut self) -> Result<BlockItem, ParseError> {
-        let start = self.peek_span().start;
         self.attempt(|p| Ok(BlockItem::Decl(p.parse_declaration()?)))
             .or_else(|_| Ok(BlockItem::Stmt(self.parse_statement()?)))
     }
@@ -299,10 +298,12 @@ impl Parser {
             "parse_compound_statement",
             "a compound statement should start with '{'",
         )?;
+        self.env.push();
         let mut result = vec![];
         while self.expect(&Token::RightBrace).is_err() {
             result.push(self.parse_block_item()?);
         }
+        self.env.pop();
         Ok(result)
     }
 
