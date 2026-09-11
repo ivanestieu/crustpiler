@@ -1,12 +1,15 @@
 use crate::ast::ast::{Expr, GenericAssoc};
 use crate::ast::operators::{AsAssignOp, AsBinaryOp, AsUnaryOp, PostfixOp, TraitBinaryOp, UnaryOp};
 use crate::ast::span::{Span, Spanned};
-use crate::lexer::token::Token;
+use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
 
-impl Parser {
+impl<I> Parser<I>
+where
+    I: Iterator<Item = SpannedToken>,
+{
     fn as_basic_expr(&mut self) -> Result<Spanned<Expr>, ParseError> {
         let tok = self.advance();
         let expr = match tok.unwrap().token {

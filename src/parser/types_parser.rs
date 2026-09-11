@@ -6,12 +6,14 @@ use crate::ast::types::{
     AsStorageClass, AsTypeQualifier, BaseType, Complex, FunctionSpecifier, Sign, TypeName,
     TypeQualifier, TypeSpec,
 };
-use crate::lexer::token::Token;
+use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
 
-impl Parser {
+impl<I> Parser<I>
+where I: Iterator<Item = SpannedToken>
+{
     fn parse_enum(&mut self) -> Result<EnumSpec, ParseError> {
         let name = self.expect_identifier().ok();
         if self.expect(&Token::LeftBrace).is_err() {

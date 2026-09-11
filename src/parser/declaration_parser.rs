@@ -2,12 +2,15 @@ use crate::ast::decl_specifiers::TypeExprContext;
 use crate::ast::declarations::{Decl, Declaration, InitDeclarator, StaticAssert};
 use crate::ast::span::Spanned;
 use crate::ast::struct_union::{FieldDecl, StructMember, StructOrUnion};
-use crate::lexer::token::Token;
+use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
 
-impl Parser {
+impl<I> Parser<I>
+where
+    I: Iterator<Item = SpannedToken>,
+{
     fn parse_static_assert_declaration(&mut self) -> Result<StaticAssert, ParseError> {
         self.expect(&Token::KwStaticAssert).on_err_context(
             "parse_static_assert_declaration",

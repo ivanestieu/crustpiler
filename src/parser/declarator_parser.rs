@@ -43,7 +43,10 @@ impl DeclaratorMode for Concrete {
     }
 }
 
-impl Parser {
+impl<I> Parser<I>
+where
+    I: Iterator<Item = SpannedToken>,
+{
     fn parse_struct_declarator(&mut self) -> Result<FieldDeclarator, ParseError> {
         if self.expect(&Token::Colon).is_ok() {
             let constant_expr = self.parse_conditional_expr().on_err_context(

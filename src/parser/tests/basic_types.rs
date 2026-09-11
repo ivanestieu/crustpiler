@@ -22,7 +22,7 @@ fn basic_int() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -69,7 +69,7 @@ fn unsigned_int() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -112,7 +112,7 @@ fn unsigned() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -159,7 +159,7 @@ fn signed_char() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -207,7 +207,7 @@ fn unsigned_char() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -251,7 +251,7 @@ fn short() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -298,7 +298,7 @@ fn short_int() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {
@@ -345,7 +345,7 @@ fn unsigned_short() {
         },
     ];
     assert_eq!(
-        Parser::new(tokens).parse_declaration(),
+        Parser::new(tokens.into_iter()).parse_declaration(),
         Ok(Declaration::Normal(Spanned {
             node: Decl {
                 specifiers: TypeExpr {

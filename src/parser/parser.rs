@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use crate::ast::ast::Item;
 use crate::ast::span::Span;
 use crate::lexer::token::{SpannedToken, Token};
@@ -5,58 +6,68 @@ use crate::parse_error;
 use crate::parser::env::Env;
 use crate::parser::errors::{Contextualize, ParseError};
 
-pub struct Parser {
-    tokens: Vec<SpannedToken>,
-    pos: usize,
+pub struct Parser<I>
+where I: Iterator<Item = SpannedToken>
+{
+    tokens: I,
+    peek: Option<SpannedToken>,
+    buffer: Option<VecDeque<SpannedToken>>,
+    prev_span: Option<Span>,
     pub(super) env: Env,
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<SpannedToken>) -> Self {
-        Self {
+impl<I> Parser<I>
+where I: Iterator<Item = SpannedToken>
+{
+    pub fn new(tokens: I) -> Self {
+        let mut new = Self {
             tokens,
-            pos: 0,
+            peek: None,
+            buffer: None,
+            prev_span: None,
             env: Default::default(),
-        }
+        };
+        new.peek = new.tokens.next();
+        new
     }
 
     pub(super) fn attempt<T, F>(&mut self, f: F) -> Result<T, ParseError>
     where
         F: FnOnce(&mut Self) -> Result<T, ParseError>,
     {
-        let save = self.pos;
+        self.buffer = Some(VecDeque::new());
         match f(self) {
             Ok(v) => Ok(v),
             Err(e) => {
-                self.pos = save;
                 Err(e)
             }
         }
     }
 
     pub(super) fn peek(&self) -> Option<&Token> {
-        self.tokens.get(self.pos).map(|st: &SpannedToken| &st.token)
+        self.peek.as_ref().map(|st| &st.token)
     }
 
     pub(super) fn peek_span(&self) -> Span {
-        self.tokens
-            .get(self.pos)
+        self.peek.as_ref()
             .map(|st| st.span.clone().into_ast())
             .unwrap_or(Span { start: 0, end: 0 })
     }
 
     // span of the most recently consumed token
     pub(super) fn prev_span(&self) -> Span {
-        self.tokens
-            .get(self.pos.saturating_sub(1))
-            .map(|st| st.span.clone().into_ast())
+        self.prev_span.as_ref()
+            .map(|st| st.clone())
             .unwrap_or(Span { start: 0, end: 0 })
     }
 
     pub(super) fn advance(&mut self) -> Option<SpannedToken> {
-        let tok: Option<SpannedToken> = self.tokens.get(self.pos).cloned();
-        if tok.is_some() {
-            self.pos += 1;
+        let tok = self.peek.take();
+        match &mut self.buffer {
+            Some(buffer) => {
+                self.peek = buffer.pop_front();
+            }
+            None => self.peek = self.tokens.next(),
         }
         tok
     }
@@ -104,7 +115,7 @@ impl Parser {
     }
 
     pub(super) fn at_eof(&self) -> bool {
-        if self.pos >= self.tokens.len() {
+        if self.peek().is_none() {
             true
         } else {
             false

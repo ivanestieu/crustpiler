@@ -22,7 +22,7 @@ pub fn run(file_path: &Path, options: &ProgramOptions) -> Result<(), String> {
         token::lex(source).or_else(|e| Err(format!("Lexing error: {}", e)))?;
     options.print_tokens(&tokens, file_path);
 
-    let translation: Vec<Item> = Parser::new(tokens).parse_translation_unit().map_err(|e| {
+    let translation: Vec<Item> = Parser::new(tokens.into_iter()).parse_translation_unit().map_err(|e| {
         e.print_span(source);
         format!("{}", e)
     })?;

@@ -4,12 +4,15 @@ use crate::ast::declarations::Declaration;
 use crate::ast::function_def::FunctionDef;
 use crate::ast::span::{Span, Spanned};
 use crate::ast::statements::{BlockItem, ForInit, Stmt};
-use crate::lexer::token::Token;
+use crate::lexer::token::{SpannedToken, Token};
 use crate::parse_error;
 use crate::parser::errors::{Contextualize, ParseError};
 use crate::parser::parser::Parser;
 
-impl Parser {
+impl<I> Parser<I>
+where
+    I: Iterator<Item = SpannedToken>,
+{
     fn parse_labeled_statement(&mut self) -> Result<Stmt, ParseError> {
         let start = self.peek_span().start;
         match self.peek() {
