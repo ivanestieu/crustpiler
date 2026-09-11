@@ -213,11 +213,14 @@ impl Parser {
         let start = self.peek_span();
         // K & R params
         let mut old_style_params = Vec::new();
-        while self.expect(&Token::RightParenthesis).is_err()
-            && let Ok(name) = self.expect_identifier()
+        while let Ok(name) = self.expect_identifier()
         {
             old_style_params.push(Expr::Ident(name));
+            if self.expect(&Token::Comma).is_err() {
+                break;
+            }
         }
+        self.expect(&Token::RightParenthesis)?;
         if !old_style_params.is_empty() {
             return Ok(old_style_params);
         }
@@ -284,7 +287,6 @@ impl Parser {
                 break;
             }
         }
-        // Parse function parameters
         self.expect(&Token::RightParenthesis).on_err_context(
             "parse_function_suffix",
             "failed to parse right parenthesis in function suffix",

@@ -127,19 +127,23 @@ impl Parser {
         self.attempt(|p| {
             Ok(Item::FunctionDef(
                 p.parse_function_definition()
-                    .on_err_context("parse_item", "failed to parse function definition")
-                    .map_err(|e| {
-                        eprintln!("{}", e);
-                        e
-                    })?,
+                    .on_err_context("parse_item", "failed to parse function definition")?,
             ))
         })
-        .or_else(|_| {
+        .or_else(|orr_e| {
             Ok(Item::Declaration(self.parse_declaration().on_err_context(
                 "parse_item",
                 "failed to parse declaration",
-            )?))
-        })
+            ).map_err(|e| {
+                let mess = e.to_string();
+                if mess.contains("parse_declaration: a semicolon should end a declaration") && mess.contains("expected SemiColon, found Some(LeftBrace)") {
+                    orr_e
+                }
+                else {
+                    e
+                }
+            })?)
+        )})
     }
 }
 

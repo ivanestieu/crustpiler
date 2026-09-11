@@ -33,20 +33,23 @@ impl ParseError {
         }
         let (start, end) = self.span.unwrap();
         let mut counter = 0;
+        let mut prev_line = "";
         for line in source.lines() {
             if counter + 1 + line.len() > start {
                 let span_start = start - counter;
                 eprintln!(
-                    "{}\n{}{} {}",
+                    "{}\n{}\n{}{} {}",
+                    prev_line,
                     line,
                     " ".repeat(span_start),
-                    "^".repeat(end - start),
+                    "^".repeat(usize::saturating_sub(end, start)),
                     self.base_message
                 );
 
                 break;
             }
             counter += line.len() + 1;
+            prev_line = line;
         }
     }
 }

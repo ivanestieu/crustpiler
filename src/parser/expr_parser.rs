@@ -227,10 +227,9 @@ impl Parser {
                 span: start.merge(&end),
             })
         };
-        if let postfix_expr = self.parse_postfix_expr()
-            && postfix_expr.is_ok()
+        if let Ok(postfix_expr) = self.parse_postfix_expr()
         {
-            return postfix_expr;
+            return Ok(postfix_expr);
         };
         match self.peek() {
             Some(tok @ (Token::IncOp | Token::DecOp)) => {
@@ -416,15 +415,15 @@ impl Parser {
             "parse_assignment_expr",
             "failed to parse conditional expression",
         )?;
-        if !matches!(
-            lhs,
-            Spanned {
-                node: Expr::BinaryOp { .. },
-                ..
-            }
-        ) {
-            return Ok(lhs);
-        }
+        //if matches!(
+        //    lhs,
+        //    Spanned {
+        //        node: Expr::BinaryOp { .. },
+        //        ..
+        //    }
+        //) {
+        //    return Ok(lhs);
+        //}
         while let Some(token) = self.peek()
             && let Ok(op) = token.as_assign_op()
         {

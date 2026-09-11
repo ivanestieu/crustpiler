@@ -133,7 +133,7 @@ impl Parser {
             "parse_for_statement",
             "`for` keyword must be followed by `(`",
         )?;
-        let for_init = if let Ok(stmt) = self.parse_expression_statement() {
+        let for_init = if let Ok(stmt) = self.attempt(|p| p.parse_expression_statement()) {
             match stmt {
                 Stmt::Expr(expr) => ForInit::Expr(expr),
                 Stmt::Empty => ForInit::Empty,
