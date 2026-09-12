@@ -121,9 +121,9 @@ impl Output for InitDeclarator {
     fn as_c_repr(&self) -> String {
         let name = self.declarator.ident().unwrap_or("_");
         match &self.init {
-            Some(Initializer::Expr(e)) => format!("{} = {};", name, e.as_rust_repr()),
-            None => format!("{};", name),
-            _ => format!("{};", name), // Placeholder for other initializers
+            Some(Initializer::Expr(e)) => format!("{} = {}", name, e.as_rust_repr()),
+            None => format!("{}", name),
+            _ => format!("{}", name), // Placeholder for other initializers
         }
     }
 
