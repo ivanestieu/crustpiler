@@ -287,6 +287,18 @@ impl From<std::ops::Range<usize>> for Span {
 pub struct SpannedToken {
     pub token: Token,
     pub span: Span,
+    pub line: usize,
+}
+
+#[cfg(test)]
+impl From<Token> for SpannedToken {
+    fn from(token: Token) -> Self {
+        SpannedToken {
+            token,
+            span: Span { start: 0, end: 0 },
+            line: 0,
+        }
+    }
 }
 
 /// Run the Logos lexer over `src`, collecting tokens or the first error.
@@ -296,6 +308,7 @@ pub fn lex(src: &str) -> Result<Vec<SpannedToken>, LexError> {
         match result {
             Ok(token) => out.push(SpannedToken {
                 token,
+                line: src[..range.start].lines().count() + 1,
                 span: range.into(),
             }),
             Err(mut e) => {

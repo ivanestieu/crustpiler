@@ -8,18 +8,9 @@ use crate::ast::types::{ArithType, BaseType, Sign, SizeSpec, TypeSpec};
 #[test]
 fn basic_int() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwInt,
-            span: crate::lexer::token::Span { start: 0, end: 2 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("a")),
-            span: crate::lexer::token::Span { start: 4, end: 5 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 5, end: 6 },
-        },
+        SpannedToken::from(Token::KwInt),
+        SpannedToken::from(Token::Ident(String::from("a"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -51,22 +42,10 @@ fn basic_int() {
 #[test]
 fn unsigned_int() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwUnsigned,
-            span: crate::lexer::token::Span { start: 0, end: 8 },
-        },
-        SpannedToken {
-            token: Token::KwInt,
-            span: crate::lexer::token::Span { start: 9, end: 11 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("b")),
-            span: crate::lexer::token::Span { start: 12, end: 13 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 13, end: 14 },
-        },
+        SpannedToken::from(Token::KwUnsigned),
+        SpannedToken::from(Token::KwInt),
+        SpannedToken::from(Token::Ident(String::from("b"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -98,18 +77,9 @@ fn unsigned_int() {
 #[test]
 fn unsigned() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwUnsigned,
-            span: crate::lexer::token::Span { start: 0, end: 8 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("c")),
-            span: crate::lexer::token::Span { start: 9, end: 10 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 10, end: 11 },
-        },
+        SpannedToken::from(Token::KwUnsigned),
+        SpannedToken::from(Token::Ident(String::from("c"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -141,22 +111,10 @@ fn unsigned() {
 #[test]
 fn signed_char() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwSigned,
-            span: crate::lexer::token::Span { start: 0, end: 6 },
-        },
-        SpannedToken {
-            token: Token::KwChar,
-            span: crate::lexer::token::Span { start: 7, end: 10 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("d")),
-            span: crate::lexer::token::Span { start: 11, end: 12 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 12, end: 13 },
-        },
+        SpannedToken::from(Token::KwSigned),
+        SpannedToken::from(Token::KwChar),
+        SpannedToken::from(Token::Ident(String::from("d"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -189,22 +147,10 @@ fn signed_char() {
 #[test]
 fn unsigned_char() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwUnsigned,
-            span: crate::lexer::token::Span { start: 0, end: 8 },
-        },
-        SpannedToken {
-            token: Token::KwChar,
-            span: crate::lexer::token::Span { start: 9, end: 12 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("e")),
-            span: crate::lexer::token::Span { start: 13, end: 14 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 14, end: 15 },
-        },
+        SpannedToken::from(Token::KwUnsigned),
+        SpannedToken::from(Token::KwChar),
+        SpannedToken::from(Token::Ident(String::from("e"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -237,18 +183,9 @@ fn unsigned_char() {
 #[test]
 fn short() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwShort,
-            span: crate::lexer::token::Span { start: 0, end: 5 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("f")),
-            span: crate::lexer::token::Span { start: 6, end: 7 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 7, end: 8 },
-        },
+        SpannedToken::from(Token::KwShort),
+        SpannedToken::from(Token::Ident(String::from("f"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -280,22 +217,10 @@ fn short() {
 #[test]
 fn short_int() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwShort,
-            span: crate::lexer::token::Span { start: 0, end: 5 },
-        },
-        SpannedToken {
-            token: Token::KwInt,
-            span: crate::lexer::token::Span { start: 6, end: 10 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("g")),
-            span: crate::lexer::token::Span { start: 11, end: 12 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 12, end: 13 },
-        },
+        SpannedToken::from(Token::KwShort),
+        SpannedToken::from(Token::KwInt),
+        SpannedToken::from(Token::Ident(String::from("g"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
@@ -327,22 +252,10 @@ fn short_int() {
 #[test]
 fn unsigned_short() {
     let tokens = vec![
-        SpannedToken {
-            token: Token::KwUnsigned,
-            span: crate::lexer::token::Span { start: 0, end: 8 },
-        },
-        SpannedToken {
-            token: Token::KwShort,
-            span: crate::lexer::token::Span { start: 9, end: 14 },
-        },
-        SpannedToken {
-            token: Token::Ident(String::from("h")),
-            span: crate::lexer::token::Span { start: 15, end: 16 },
-        },
-        SpannedToken {
-            token: Token::SemiColon,
-            span: crate::lexer::token::Span { start: 16, end: 17 },
-        },
+        SpannedToken::from(Token::KwUnsigned),
+        SpannedToken::from(Token::KwShort),
+        SpannedToken::from(Token::Ident(String::from("h"))),
+        SpannedToken::from(Token::SemiColon),
     ];
     assert_eq!(
         Parser::new(tokens).parse_declaration(),
